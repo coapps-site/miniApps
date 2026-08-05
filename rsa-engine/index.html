@@ -200,6 +200,20 @@
 
         .page-break { page-break-before: always; margin-top: 15px; }
 
+        /* Input Parameters Summary Styling */
+        .input-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+        .input-card { border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; break-inside: avoid; page-break-inside: avoid; }
+        .input-card-title {
+            font-size: 9.5px; font-weight: 800; letter-spacing: 0.3px; color: #fff; background: #12384b;
+            padding: 4px 8px; border-radius: 4px; margin: -8px -10px 6px -10px; text-transform: uppercase;
+        }
+        .input-card table { width: 100%; border-collapse: collapse; }
+        .input-card td { font-size: 9.5px; padding: 2px 0; border-bottom: 1px dashed #e2e8f0; vertical-align: top; }
+        .input-card tr:last-child td { border-bottom: none; }
+        .input-card td:first-child { color: #60717a; padding-right: 6px; }
+        .input-card td:last-child { text-align: right; font-weight: 700; color: #12384b; white-space: nowrap; }
+        .input-card .override-tag { font-size: 8px; font-weight: 800; color: #b8790f; margin-left: 4px; }
+
         @media(max-width:720px){
             .hero{padding:22px 16px}
             .hero h2{font-size:21px}
@@ -230,7 +244,7 @@
         <div>
             <small>SANDWICH PANEL &middot; MULLION &amp; FASTENER &middot; STRUCTURAL VERIFICATION</small>
             <h2>Room structural analysis,<br>checked against 18 criteria.</h2>
-            <p>Panel bending, core shear, thermal bowing, deflection, ceiling load, natural frequency, mullion buckling and fastener capacity &mdash; all editable, with a complete 3-page technical report.</p>
+            <p>Panel bending, core shear, thermal bowing, deflection, ceiling load, natural frequency, mullion buckling and fastener capacity &mdash; all editable, with a complete 4-page technical report.</p>
         </div>
         <div class="hero-badge">
             <svg viewBox="0 0 220 220" width="180" height="180" role="img" aria-label="18 verification checks">
@@ -546,6 +560,17 @@
             </table>
         </div>
 
+        <!-- PAGE 1B: INPUT PARAMETERS SUMMARY -->
+        <div class="page-break"></div>
+
+        <div id="inputSummarySheet">
+            <div class="report-header">
+                <h2>INPUT PARAMETERS SUMMARY</h2>
+                <p>Complete record of all input values used to generate this report, INPUT-1 through INPUT-8</p>
+            </div>
+            <div id="inputSummaryGrid" class="input-summary-grid"></div>
+        </div>
+
         <!-- PAGE 2: ATTACHMENT 1 - DIAGRAMS & RECOMMENDATIONS -->
         <div class="page-break"></div>
 
@@ -734,7 +759,7 @@
         </div>
     </div>
 
-    <button id="pdfExportBtn" class="action-btn" style="display:none; background-color:#16a34a; margin-top:20px;" onclick="exportToPDF()">EXPORT COMPLETE 3-PAGE PDF REPORT</button>
+    <button id="pdfExportBtn" class="action-btn" style="display:none; background-color:#16a34a; margin-top:20px;" onclick="exportToPDF()">EXPORT COMPLETE 4-PAGE PDF REPORT</button>
 </main>
 
 <script>
@@ -799,6 +824,88 @@
         mmDirty.delete(id);
         updateMaterialMechanicsLive();
         saveDraft();
+    }
+
+    // Card contents for the report's "Input Parameters Summary" page (INPUT-1..INPUT-8).
+    // Each field reads live from the DOM at report-generation time, so the summary always
+    // matches exactly what fed the calculations — never a separate hand-maintained copy.
+    const INPUT_SUMMARY_SECTIONS = [
+        { title: 'Room Identification & Metadata', fields: [
+            { id: 'roomId', label: 'Room ID / Tag' },
+            { id: 'roomDesc', label: 'Room Description' }
+        ] },
+        { title: 'Room Dimensions & Panel Geometry', fields: [
+            { id: 'roomShape', label: 'Room Shape' },
+            { id: 'roomLength', label: 'Room Length Lr', unit: 'm' },
+            { id: 'roomWidth', label: 'Room Width Wr', unit: 'm' },
+            { id: 'roomHeight', label: 'Room Clear Height Hr', unit: 'm' },
+            { id: 'notchLength', label: 'L-Shape Notch Length Ln', unit: 'm', showIf: () => document.getElementById('roomShape').value === 'L-Shaped' },
+            { id: 'notchWidth', label: 'L-Shape Notch Width Wn', unit: 'm', showIf: () => document.getElementById('roomShape').value === 'L-Shaped' },
+            { id: 'panelWidth', label: 'Panel Width B', unit: 'm' },
+            { id: 'coreThickness', label: 'Core Thickness Dc', unit: 'mm' },
+            { id: 'facingThickness', label: 'Facing Thickness tf', unit: 'mm' }
+        ] },
+        { title: 'Support Condition', fields: [
+            { id: 'supportCondition', label: 'Support Condition' },
+            { id: 'braceSpacing', label: 'Effective Brace/Girt Spacing', unit: 'm', showIf: () => document.getElementById('supportCondition').value === 'braced' }
+        ] },
+        { title: 'Material Mechanics (Facing & Core)', fields: [
+            { id: 'facingModulus', label: 'Facing Steel Modulus Es', unit: 'GPa' },
+            { id: 'facingYield', label: 'Facing Yield Strength fy', unit: 'MPa' },
+            { id: 'coreCompModulus', label: 'Core Compressive Modulus Ec', unit: 'MPa' },
+            { id: 'coreShearModulus', label: 'Core Shear Modulus Gc', unit: 'MPa' },
+            { id: 'coreShearStrength', label: 'Core Shear Capacity fvk', unit: 'MPa' }
+        ] },
+        { title: 'Derived Section Properties', fields: [
+            { id: 'mmMrd', label: 'Panel Bending Capacity Mrd', unit: 'kNm/m', dirtyTag: true },
+            { id: 'mmSigmaAllow', label: 'Facing Allowable Stress', unit: 'MPa', dirtyTag: true },
+            { id: 'mmWrinkle', label: 'Facing Wrinkling Allowable', unit: 'MPa', dirtyTag: true },
+            { id: 'mmBpanel', label: 'Panel Flexural Rigidity', unit: 'N·mm²/mm', dirtyTag: true }
+        ] },
+        { title: 'Thermal & Dynamic Parameters', fields: [
+            { id: 'tempIn', label: 'Internal Temperature Tin', unit: '°C' },
+            { id: 'tempOut', label: 'External Temperature Tout', unit: '°C' },
+            { id: 'coeffAlpha', label: 'Thermal Expansion Coeff α', unit: '1/°C' },
+            { id: 'targetFreq', label: 'Target Natural Freq fmin', unit: 'Hz' }
+        ] },
+        { title: 'Mullion Post, Truss & Fastener Mechanics', fields: [
+            { id: 'postSpacing', label: 'Post Spacing Spost', unit: 'm' },
+            { id: 'trussSpacing', label: 'Truss Spacing Struss', unit: 'm' },
+            { id: 'trussDirection', label: 'Truss Span Direction' },
+            { id: 'topSuspendedSupport', label: 'Top Suspended Support Provided?' },
+            { id: 'postInertia', label: 'Post Moment of Inertia Ix', unit: 'cm⁴' },
+            { id: 'postModulus', label: 'Post Section Modulus Zx', unit: 'cm³' },
+            { id: 'fastenerShear', label: 'Fastener Shear Capacity Vrd', unit: 'kN' }
+        ] },
+        { title: 'Loading & Services Allocations', fields: [
+            { id: 'diffPressure', label: 'Air Differential Pressure qair', unit: 'Pa' },
+            { id: 'walkoverLoad', label: 'Walkover Live Load LL', unit: 'kg/m²' },
+            { id: 'otherServices', label: 'Services Load Allocation I2', unit: 'kg/m²' },
+            { id: 'mepLoad', label: 'Ducting & Cable Tray Load qmep', unit: 'kg/m²' },
+            { id: 'equipmentPoint', label: 'Concentrated Equipment Load Peq', unit: 'kg' }
+        ] }
+    ];
+
+    function fieldDisplayValue(field) {
+        const el = document.getElementById(field.id);
+        const raw = el.tagName === 'SELECT' ? el.options[el.selectedIndex].text : el.value;
+        const unit = field.unit ? ' ' + field.unit : '';
+        const tag = field.dirtyTag && mmDirty.has(field.id) ? ' <span class="override-tag">OVERRIDDEN</span>' : '';
+        return raw + unit + tag;
+    }
+
+    function renderInputSummary() {
+        const grid = document.getElementById('inputSummaryGrid');
+        grid.innerHTML = INPUT_SUMMARY_SECTIONS.map((section, i) => {
+            const rows = section.fields
+                .filter(f => !f.showIf || f.showIf())
+                .map(f => `<tr><td>${f.label}</td><td>${fieldDisplayValue(f)}</td></tr>`)
+                .join('');
+            return `<div class="input-card">
+                <div class="input-card-title">INPUT-${i + 1}: ${section.title}</div>
+                <table>${rows}</table>
+            </div>`;
+        }).join('');
     }
 
     function updateRoomShapeUI() {
@@ -1030,6 +1137,7 @@
         const L = coef.useBraceSpacing && Number.isFinite(braceSpacing) ? braceSpacing : H_r; // Wall panel / post span (m)
         const SUPPORT_LABELS = { simple: 'Simple Span (pin–pin)', continuous: 'Continuous (multi-span)', cantilever: 'Cantilever (fixed–free)', braced: 'Braced (' + L.toFixed(2) + 'm effective span)' };
         document.getElementById('rptSupportCond').innerText = SUPPORT_LABELS[supportCondition] || SUPPORT_LABELS.simple;
+        renderInputSummary();
 
         const recommendations = [];
         let allChecksAcceptable = true;
