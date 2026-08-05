@@ -274,9 +274,9 @@
 <main>
     <div id="inputForm">
         
-        <!-- SECTION 0: ROOM METADATA -->
+        <!-- SECTION 1: ROOM METADATA -->
         <div class="section-panel">
-            <div class="panel-title">0. Room Identification & Metadata</div>
+            <div class="panel-title">1. Room Identification & Metadata</div>
             <div class="input-grid">
                 <div class="input-group">
                     <label>Room ID / Tag</label>
@@ -289,9 +289,9 @@
             </div>
         </div>
 
-        <!-- SECTION 1: GEOMETRY -->
+        <!-- SECTION 2: GEOMETRY -->
         <div class="section-panel">
-            <div class="panel-title">1. Room Dimensions & Panel Geometry</div>
+            <div class="panel-title">2. Room Dimensions & Panel Geometry</div>
             <div class="input-grid">
                 <div class="input-group">
                     <label>Room Shape</label>
@@ -336,9 +336,9 @@
             <p class="hint" id="notchHint" hidden>The notch is cut from one corner of the L<sub>r</sub> &times; W<sub>r</sub> rectangle (rectangular footprint minus L<sub>n</sub> &times; W<sub>n</sub>). Wall panel span calculations continue to use H<sub>r</sub> and the governing L<sub>r</sub>/W<sub>r</sub> run; confirm the notch wall run against the actual layout for post/truss spacing.</p>
         </div>
 
-        <!-- SECTION 1B: SUPPORT CONDITION / SPAN TOPOLOGY -->
+        <!-- SECTION 3: SUPPORT CONDITION / SPAN TOPOLOGY -->
         <div class="section-panel">
-            <div class="panel-title">1B. Support Condition (Wall Panel &amp; Post Span Topology)</div>
+            <div class="panel-title">3. Support Condition (Wall Panel &amp; Post Span Topology)</div>
 
             <div class="topology-grid" id="topologyGrid">
                 <div class="topology-card" data-value="simple" tabindex="0" role="button" aria-label="Select Simple Span support condition">
@@ -426,9 +426,9 @@
             </p>
         </div>
 
-        <!-- SECTION 2: MATERIAL MECHANICS -->
+        <!-- SECTION 4: MATERIAL MECHANICS -->
         <div class="section-panel">
-            <div class="panel-title">2. Material Mechanics (Facing & Core)</div>
+            <div class="panel-title">4. Material Mechanics (Facing & Core)</div>
             <div class="input-grid">
                 <div class="input-group">
                     <label>Facing Steel Modulus E<sub>s</sub> (GPa)</label>
@@ -491,9 +491,9 @@
             </div>
         </div>
 
-        <!-- SECTION 3: THERMAL & DYNAMICS -->
+        <!-- SECTION 5: THERMAL & DYNAMICS -->
         <div class="section-panel">
-            <div class="panel-title">3. Thermal Bowing & Dynamic Parameters</div>
+            <div class="panel-title">5. Thermal Bowing & Dynamic Parameters</div>
             <div class="input-grid">
                 <div class="input-group">
                     <label>Internal Temperature T<sub>in</sub> (°C)</label>
@@ -514,9 +514,9 @@
             </div>
         </div>
 
-        <!-- SECTION 4: POST, TRUSS & FASTENER MECHANICS -->
+        <!-- SECTION 6: POST, TRUSS & FASTENER MECHANICS -->
         <div class="section-panel">
-            <div class="panel-title">4. Mullion Post, Truss & Fastener Mechanics</div>
+            <div class="panel-title">6. Mullion Post, Truss & Fastener Mechanics</div>
             <div class="input-grid">
                 <div class="input-group">
                     <label>Post Spacing S<sub>post</sub> (m)</label>
@@ -553,13 +553,17 @@
                     <label>Fastener Shear Capacity V<sub>rd</sub> (kN)</label>
                     <input type="number" id="fastenerShear" step="0.1" value="2.2">
                 </div>
+                <div class="input-group">
+                    <label>Base Anchor Spacing s<sub>a</sub> (m)</label>
+                    <input type="number" id="anchorSpacing" step="0.05" value="0.60">
+                </div>
             </div>
-            <p class="hint">Trusses span the room's shorter side and repeat at S<sub>truss</sub> centres along the longer side, with a minimum of 2 trusses regardless of spacing. For a square room (L<sub>r</sub> = W<sub>r</sub>) the automatic rule is ambiguous &mdash; set Truss Span Direction explicitly. Truss spans of 12.0m or more require top suspended support (Check 18); below 12.0m no top suspended support is required.</p>
+            <p class="hint">Trusses span the room's shorter side and repeat at S<sub>truss</sub> centres along the longer side, with a minimum of 2 trusses regardless of spacing. For a square room (L<sub>r</sub> = W<sub>r</sub>) the automatic rule is ambiguous &mdash; set Truss Span Direction explicitly. Truss spans of 12.0m or more require top suspended support (Check 18); below 12.0m no top suspended support is required. Base Anchor Spacing s<sub>a</sub> is the centre-to-centre spacing of anchors along the base track &mdash; independent of Post Spacing S<sub>post</sub> &mdash; and sets the tributary width for Check 15's per-anchor shear demand.</p>
         </div>
 
-        <!-- SECTION 5: LOADS & SERVICE ALLOCATIONS -->
+        <!-- SECTION 7: LOADS & SERVICE ALLOCATIONS -->
         <div class="section-panel">
-            <div class="panel-title">5. Loading & Services Allocations</div>
+            <div class="panel-title">7. Loading & Services Allocations</div>
             <div class="input-grid">
                 <div class="input-group">
                     <label>Air Differential Pressure q<sub>air</sub> (Pa)</label>
@@ -643,7 +647,7 @@
         <div id="inputSummarySheet">
             <div class="report-header">
                 <h2>INPUT PARAMETERS SUMMARY</h2>
-                <p>Complete record of all input values used to generate this report, INPUT-1 through INPUT-8</p>
+                <p>Complete record of all input values used to generate this report, INPUT-1 through INPUT-7 &mdash; numbered to match the input form sections above</p>
             </div>
             <div id="inputSummaryGrid" class="input-summary-grid"></div>
         </div>
@@ -827,7 +831,7 @@
                     <tr><td>12</td><td>Post Euler Buckling Capacity</td><td class="formula-code">P<sub>crit</sub> = (π² · E · I<sub>x</sub>) / (1.5 · L²)</td><td>&lt;= P<sub>crit</sub> / 1.5 (Euler Pcr)</td></tr>
                     <tr><td>13</td><td>Post Bending Moment</td><td class="formula-code">M<sub>post</sub> = (q<sub>air</sub> · S<sub>post</sub> · L²) / 8</td><td>&lt;= M<sub>rd</sub> (Post Yield)</td></tr>
                     <tr><td>14</td><td>Stress Interaction Ratio</td><td class="formula-code">IR = (σ<sub>axial</sub> / f<sub>allow</sub>) + (σ<sub>bending</sub> / f<sub>allow</sub>)</td><td>&lt;= 100.0 % (Interaction)</td></tr>
-                    <tr><td>15</td><td>Fastener Base Shear</td><td class="formula-code">V<sub>act</sub> = (q<sub>air</sub> · S<sub>post</sub> · L) / 2</td><td>&lt;= V<sub>rd</sub> per anchor</td></tr>
+                    <tr><td>15</td><td>Fastener Base Shear</td><td class="formula-code">V<sub>act</sub> = q<sub>air</sub> · s<sub>a</sub> · L · R</td><td>&lt;= V<sub>rd</sub> per anchor</td></tr>
                     <tr><td>16</td><td>Lintel Opening Moment</td><td class="formula-code">M<sub>lintel</sub> = (q<sub>tot</sub> · g · L<sub>door</sub>³) / 8</td><td>&lt;= 1.200 kNm (Header)</td></tr>
                     <tr><td>17</td><td>Services Allocation Limit</td><td class="formula-code">I<sub>2</sub> (Declared Input)</td><td>&lt;= 25.0 kg/m² Allocation</td></tr>
                     <tr><td>18</td><td>Truss Span / Support Rule</td><td class="formula-code">Span = shorter of (L<sub>r</sub>, W<sub>r</sub>); bays = max(2, round(longer side / S<sub>truss</sub>))</td><td>&lt; 12.0m no support required; &gt;= 12.0m requires top suspended support</td></tr>
@@ -851,7 +855,7 @@
         coreShearModulus: "2.5", coreShearStrength: "0.08",
         tempIn: "20", tempOut: "35", coeffAlpha: "0.000012", targetFreq: "8.0",
         postSpacing: "2.40", trussSpacing: "3.00", trussDirection: "auto", topSuspendedSupport: "no", postInertia: "125",
-        postModulus: "22", fastenerShear: "2.2",
+        postModulus: "22", fastenerShear: "2.2", anchorSpacing: "0.60",
         diffPressure: "50", walkoverLoad: "100.0", otherServices: "10.0",
         mepLoad: "8.5", equipmentPoint: "25.0"
     };
@@ -903,9 +907,10 @@
         saveDraft();
     }
 
-    // Card contents for the report's "Input Parameters Summary" page (INPUT-1..INPUT-8).
-    // Each field reads live from the DOM at report-generation time, so the summary always
-    // matches exactly what fed the calculations — never a separate hand-maintained copy.
+    // Card contents for the report's "Input Parameters Summary" page (INPUT-1..INPUT-7).
+    // Order and numbering mirror the input form's own section numbers exactly. Each field
+    // reads live from the DOM at report-generation time, so the summary always matches
+    // exactly what fed the calculations — never a separate hand-maintained copy.
     const INPUT_SUMMARY_SECTIONS = [
         { title: 'Room Identification & Metadata', fields: [
             { id: 'roomId', label: 'Room ID / Tag' },
@@ -931,13 +936,11 @@
             { id: 'facingYield', label: 'Facing Yield Strength fy', unit: 'MPa' },
             { id: 'coreCompModulus', label: 'Core Compressive Modulus Ec', unit: 'MPa' },
             { id: 'coreShearModulus', label: 'Core Shear Modulus Gc', unit: 'MPa' },
-            { id: 'coreShearStrength', label: 'Core Shear Capacity fvk', unit: 'MPa' }
-        ] },
-        { title: 'Derived Section Properties', fields: [
-            { id: 'mmMrd', label: 'Panel Bending Capacity Mrd', unit: 'kNm/m', dirtyTag: true },
-            { id: 'mmSigmaAllow', label: 'Facing Allowable Stress', unit: 'MPa', dirtyTag: true },
-            { id: 'mmWrinkle', label: 'Facing Wrinkling Allowable', unit: 'MPa', dirtyTag: true },
-            { id: 'mmBpanel', label: 'Panel Flexural Rigidity', unit: 'N·mm²/mm', dirtyTag: true }
+            { id: 'coreShearStrength', label: 'Core Shear Capacity fvk', unit: 'MPa' },
+            { id: 'mmMrd', label: 'Derived: Panel Bending Capacity Mrd', unit: 'kNm/m', dirtyTag: true },
+            { id: 'mmSigmaAllow', label: 'Derived: Facing Allowable Stress', unit: 'MPa', dirtyTag: true },
+            { id: 'mmWrinkle', label: 'Derived: Facing Wrinkling Allowable', unit: 'MPa', dirtyTag: true },
+            { id: 'mmBpanel', label: 'Derived: Panel Flexural Rigidity', unit: 'N·mm²/mm', dirtyTag: true }
         ] },
         { title: 'Thermal & Dynamic Parameters', fields: [
             { id: 'tempIn', label: 'Internal Temperature Tin', unit: '°C' },
@@ -952,7 +955,8 @@
             { id: 'topSuspendedSupport', label: 'Top Suspended Support Provided?' },
             { id: 'postInertia', label: 'Post Moment of Inertia Ix', unit: 'cm⁴' },
             { id: 'postModulus', label: 'Post Section Modulus Zx', unit: 'cm³' },
-            { id: 'fastenerShear', label: 'Fastener Shear Capacity Vrd', unit: 'kN' }
+            { id: 'fastenerShear', label: 'Fastener Shear Capacity Vrd', unit: 'kN' },
+            { id: 'anchorSpacing', label: 'Base Anchor Spacing sa', unit: 'm' }
         ] },
         { title: 'Loading & Services Allocations', fields: [
             { id: 'diffPressure', label: 'Air Differential Pressure qair', unit: 'Pa' },
@@ -1185,6 +1189,7 @@
         const I_x = parseFloat(document.getElementById('postInertia').value); // cm4
         const Z_x = parseFloat(document.getElementById('postModulus').value); // cm3
         const V_rd = parseFloat(document.getElementById('fastenerShear').value); // kN
+        const anchorSpacing = parseFloat(document.getElementById('anchorSpacing').value); // m
 
         // Services, Pressure & Walkover Live Load
         const q_air = parseFloat(document.getElementById('diffPressure').value); // Pa (N/m2)
@@ -1333,10 +1338,12 @@
         setParamRow('p14', interaction_pct.toFixed(1) + " %", "<= 100.0 % Interaction", p14_pass);
         if (!p14_pass) { recommendations.push("Combined axial and pressure bending interaction ratio exceeds 100%. Upgrade post profile section."); allChecksAcceptable = false; }
 
-        const V_act = (q_air * S_post * L * coef.reactionFrac) / 1000;
+        // Base track anchor shear demand: tributary width is the anchor spacing along the
+        // base track, not the post spacing — anchors and posts are independent elements.
+        const V_act = (q_air * anchorSpacing * L * coef.reactionFrac) / 1000;
         const p15_pass = V_act <= V_rd;
         setParamRow('p15', V_act.toFixed(3) + " kN", "<= " + V_rd.toFixed(2) + " kN per anchor", p15_pass);
-        if (!p15_pass) { recommendations.push("Base track fastener shear demand from pressure exceeds capacity. Decrease fastener spacing or upgrade anchor diameter."); allChecksAcceptable = false; }
+        if (!p15_pass) { recommendations.push("Base track fastener shear demand from pressure exceeds capacity. Decrease anchor spacing (s_a) or upgrade anchor diameter."); allChecksAcceptable = false; }
 
         const door_width = 1.2; 
         const M_lintel = (q_tot * 9.81 / 1000 * door_width * Math.pow(door_width, 2)) / 8; 
