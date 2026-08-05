@@ -127,11 +127,23 @@
         .derived-title { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
         .derived-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
         .derived-item {
-            display: flex; flex-direction: column; gap: 2px; background: #f1f5f9;
+            display: flex; flex-direction: column; gap: 4px; background: #f1f5f9;
             border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
         }
+        .derived-item-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
         .derived-label { font-size: 10px; font-weight: 600; color: var(--text-muted); }
-        .derived-value { font-size: 14px; font-weight: 700; color: var(--primary-dark); font-variant-numeric: tabular-nums; }
+        .derived-reset {
+            flex: none; border: none; background: transparent; color: var(--primary-dark);
+            font-size: 13px; line-height: 1; cursor: pointer; padding: 2px 4px; border-radius: 4px;
+        }
+        .derived-reset:hover { background: rgba(24, 169, 153, 0.15); }
+        .derived-input {
+            font-size: 14px; font-weight: 700; color: var(--primary-dark); font-variant-numeric: tabular-nums;
+            background: #fff;
+        }
+        .derived-item.overridden .derived-input { border-color: var(--amber); background: #fffbe3; color: #92660a; }
+        .derived-status { font-size: 9px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; color: var(--text-muted); }
+        .derived-item.overridden .derived-status { color: #b8790f; }
 
         .action-btn {
             background-color: var(--primary); color: white; border: none; width: 100%;
@@ -323,25 +335,42 @@
                 </div>
             </div>
             <div class="derived-box" id="mmDerivedBox">
-                <div class="derived-title">Derived Section Properties &mdash; live, from Panel Width B, Core Thickness D<sub>c</sub> &amp; Facing Thickness t<sub>f</sub></div>
+                <div class="derived-title">Derived Section Properties &mdash; auto-calculated from Panel Width B, Core Thickness D<sub>c</sub> &amp; Facing Thickness t<sub>f</sub>. Editable if you want to override with a specified/code value.</div>
                 <div class="derived-grid">
                     <div class="derived-item">
-                        <span class="derived-label">Panel Bending Capacity M<sub>rd</sub></span>
-                        <span class="derived-value" id="mmMrd">&ndash;</span>
+                        <div class="derived-item-head">
+                            <label class="derived-label" for="mmMrd">Panel Bending Capacity M<sub>rd</sub> (kNm/m)</label>
+                            <button type="button" class="derived-reset" id="mmMrdReset" title="Reset to calculated value" aria-label="Reset Panel Bending Capacity to calculated value">&#8635;</button>
+                        </div>
+                        <input type="number" step="0.001" class="derived-input" id="mmMrd">
+                        <span class="derived-status" id="mmMrdStatus">auto</span>
                     </div>
                     <div class="derived-item">
-                        <span class="derived-label">Facing Allowable Stress &sigma;<sub>allow</sub></span>
-                        <span class="derived-value" id="mmSigmaAllow">&ndash;</span>
+                        <div class="derived-item-head">
+                            <label class="derived-label" for="mmSigmaAllow">Facing Allowable Stress &sigma;<sub>allow</sub> (MPa)</label>
+                            <button type="button" class="derived-reset" id="mmSigmaAllowReset" title="Reset to calculated value" aria-label="Reset Facing Allowable Stress to calculated value">&#8635;</button>
+                        </div>
+                        <input type="number" step="0.01" class="derived-input" id="mmSigmaAllow">
+                        <span class="derived-status" id="mmSigmaAllowStatus">auto</span>
                     </div>
                     <div class="derived-item">
-                        <span class="derived-label">Facing Wrinkling Allowable &sigma;<sub>w,allow</sub></span>
-                        <span class="derived-value" id="mmWrinkle">&ndash;</span>
+                        <div class="derived-item-head">
+                            <label class="derived-label" for="mmWrinkle">Facing Wrinkling Allowable &sigma;<sub>w,allow</sub> (MPa)</label>
+                            <button type="button" class="derived-reset" id="mmWrinkleReset" title="Reset to calculated value" aria-label="Reset Facing Wrinkling Allowable to calculated value">&#8635;</button>
+                        </div>
+                        <input type="number" step="0.01" class="derived-input" id="mmWrinkle">
+                        <span class="derived-status" id="mmWrinkleStatus">auto</span>
                     </div>
                     <div class="derived-item">
-                        <span class="derived-label">Panel Flexural Rigidity B<sub>panel</sub></span>
-                        <span class="derived-value" id="mmBpanel">&ndash;</span>
+                        <div class="derived-item-head">
+                            <label class="derived-label" for="mmBpanel">Panel Flexural Rigidity B<sub>panel</sub> (N&middot;mm&sup2;/mm)</label>
+                            <button type="button" class="derived-reset" id="mmBpanelReset" title="Reset to calculated value" aria-label="Reset Panel Flexural Rigidity to calculated value">&#8635;</button>
+                        </div>
+                        <input type="number" step="1" class="derived-input" id="mmBpanel">
+                        <span class="derived-status" id="mmBpanelStatus">auto</span>
                     </div>
                 </div>
+                <p class="hint">These feed directly into the RSA report checks (bending, wrinkling, deflection, ceiling frequency). Values recalculate automatically as geometry or material inputs change &mdash; edit a field directly to lock in your own value, or use &#8635; to return it to the calculated value.</p>
             </div>
         </div>
 
@@ -697,6 +726,9 @@
         mepLoad: "8.5", equipmentPoint: "25.0"
     };
 
+    const MM_DERIVED_FIELDS = ['mmMrd', 'mmSigmaAllow', 'mmWrinkle', 'mmBpanel'];
+    let mmDirty = new Set();
+
     function updateMaterialMechanicsLive() {
         const B = parseFloat(document.getElementById('panelWidth').value);
         const D_c = parseFloat(document.getElementById('coreThickness').value); // mm
@@ -708,9 +740,7 @@
 
         const fields = [B, D_c, t_f, E_s, f_y, E_c, G_c];
         if (fields.some(v => !Number.isFinite(v) || v <= 0)) {
-            ['mmMrd', 'mmSigmaAllow', 'mmWrinkle', 'mmBpanel'].forEach(id => {
-                document.getElementById(id).innerText = '–';
-            });
+            refreshDerivedStatusUI();
             return;
         }
 
@@ -719,10 +749,28 @@
         const sigma_w_allow = (0.5 * Math.pow(E_s * E_c * G_c, 1 / 3)) / 1.25; // MPa
         const B_panel = (E_s * t_f * Math.pow(D_c, 2)) / 2; // N.mm2/mm width
 
-        document.getElementById('mmMrd').innerText = M_rd.toFixed(3) + ' kNm/m';
-        document.getElementById('mmSigmaAllow').innerText = sigma_allow.toFixed(2) + ' MPa';
-        document.getElementById('mmWrinkle').innerText = sigma_w_allow.toFixed(2) + ' MPa';
-        document.getElementById('mmBpanel').innerText = B_panel.toExponential(3) + ' N·mm² (per mm width)';
+        if (!mmDirty.has('mmMrd')) document.getElementById('mmMrd').value = M_rd.toFixed(3);
+        if (!mmDirty.has('mmSigmaAllow')) document.getElementById('mmSigmaAllow').value = sigma_allow.toFixed(2);
+        if (!mmDirty.has('mmWrinkle')) document.getElementById('mmWrinkle').value = sigma_w_allow.toFixed(2);
+        if (!mmDirty.has('mmBpanel')) document.getElementById('mmBpanel').value = Math.round(B_panel);
+
+        refreshDerivedStatusUI();
+    }
+
+    function refreshDerivedStatusUI() {
+        MM_DERIVED_FIELDS.forEach(id => {
+            const item = document.getElementById(id).closest('.derived-item');
+            const status = document.getElementById(id + 'Status');
+            const overridden = mmDirty.has(id);
+            item.classList.toggle('overridden', overridden);
+            status.innerText = overridden ? 'overridden' : 'auto';
+        });
+    }
+
+    function resetDerivedField(id) {
+        mmDirty.delete(id);
+        updateMaterialMechanicsLive();
+        saveDraft();
     }
 
     function updateRoomShapeUI() {
@@ -761,9 +809,11 @@
     function collectState() {
         const state = {};
         document.querySelectorAll("#inputForm input[id], #inputForm select[id]").forEach(el => { state[el.id] = el.value; });
+        state._mmDirty = JSON.stringify(Array.from(mmDirty));
         return state;
     }
     function applyState(state) {
+        mmDirty = new Set(state._mmDirty ? JSON.parse(state._mmDirty) : []);
         document.querySelectorAll("#inputForm input[id], #inputForm select[id]").forEach(el => {
             if (Object.prototype.hasOwnProperty.call(state, el.id)) el.value = state[el.id];
         });
@@ -847,6 +897,11 @@
         });
         document.getElementById("inputForm").addEventListener("input", saveDraft);
         document.getElementById("inputForm").addEventListener("input", updateMaterialMechanicsLive);
+        MM_DERIVED_FIELDS.forEach(id => {
+            document.getElementById(id).addEventListener("input", () => { mmDirty.add(id); });
+            document.getElementById(id + "Reset").addEventListener("click", () => resetDerivedField(id));
+        });
+        refreshDerivedStatusUI();
         document.getElementById("roomShape").addEventListener("change", () => { updateRoomShapeUI(); saveDraft(); });
         document.getElementById("importFile").addEventListener("change", e => {
             if (e.target.files && e.target.files[0]) { importData(e.target.files[0]); e.target.value = ""; }
@@ -866,11 +921,8 @@
         const D_c = parseFloat(document.getElementById('coreThickness').value); // mm
         const t_f = parseFloat(document.getElementById('facingThickness').value); // mm
 
-        // Read Material Properties
-        const E_s = parseFloat(document.getElementById('facingModulus').value) * 1000; // MPa
-        const f_y = parseFloat(document.getElementById('facingYield').value); // MPa
-        const E_c = parseFloat(document.getElementById('coreCompModulus').value); // MPa
-        const G_c = parseFloat(document.getElementById('coreShearModulus').value); // MPa
+        // Material properties feed the Material Mechanics "Derived Section Properties"
+        // (M_rd, sigma_allow, sigma_w_allow, B_panel), read directly further below.
         const f_vk = parseFloat(document.getElementById('coreShearStrength').value); // MPa
 
         // Thermal & Dynamic
@@ -925,26 +977,29 @@
         let allChecksAcceptable = true;
 
         // CALCULATIONS & ACCEPTANCE CRITERIA
-        const M_act = (q_air * Math.pow(L, 2)) / (8 * 1000); 
-        const M_rd = (f_y * t_f * D_c) / 1000;
+        // M_rd, sigma_f_allow, sigma_w_allow & B_panel come from the Material Mechanics
+        // "Derived Section Properties" fields — auto-calculated live from B/D_c/t_f, but
+        // user-editable there, so an override takes effect here too.
+        updateMaterialMechanicsLive();
+        const M_act = (q_air * Math.pow(L, 2)) / (8 * 1000);
+        const M_rd = parseFloat(document.getElementById('mmMrd').value);
         const p1_pass = M_act <= M_rd;
         setParamRow('p1', M_act.toFixed(4) + " kNm/m", "<= " + M_rd.toFixed(3) + " kNm/m (Capacity)", p1_pass);
         if (!p1_pass) { recommendations.push("Panel bending moment demand exceeds capacity. Increase facing thickness (t_f) or core thickness (D_c)."); allChecksAcceptable = false; }
 
-        const sigma_f = (M_act * 1000 * 1000) / (t_f * D_c * 1000); 
-        const sigma_f_allow = f_y / 1.25; 
+        const sigma_f = (M_act * 1000 * 1000) / (t_f * D_c * 1000);
+        const sigma_f_allow = parseFloat(document.getElementById('mmSigmaAllow').value);
         const p2_pass = sigma_f <= sigma_f_allow;
         setParamRow('p2', sigma_f.toFixed(2) + " MPa", "<= " + sigma_f_allow.toFixed(2) + " MPa (Yield Limit)", p2_pass);
         if (!p2_pass) { recommendations.push("Facing stress exceeds allowable yield limit. Upgrade facing steel yield strength (f_y) or thickness (t_f)."); allChecksAcceptable = false; }
 
-        const V_max = (q_air * L) / 2; 
-        const tau_max = V_max / (D_c * 1000); 
+        const V_max = (q_air * L) / 2;
+        const tau_max = V_max / (D_c * 1000);
         const p3_pass = tau_max <= f_vk;
         setParamRow('p3', tau_max.toFixed(4) + " MPa", "<= " + f_vk.toFixed(2) + " MPa (Material Limit)", p3_pass);
         if (!p3_pass) { recommendations.push("Core shear stress exceeds material shear strength. Increase core thickness (D_c) or use higher density core."); allChecksAcceptable = false; }
 
-        const sigma_w = 0.5 * Math.pow(E_s * E_c * G_c, 1/3); 
-        const sigma_w_allow = sigma_w / 1.25;
+        const sigma_w_allow = parseFloat(document.getElementById('mmWrinkle').value);
         const p4_pass = sigma_f <= sigma_w_allow;
         setParamRow('p4', sigma_f.toFixed(2) + " MPa", "<= " + sigma_w_allow.toFixed(2) + " MPa (Wrinkling)", p4_pass);
         if (!p4_pass) { recommendations.push("Risk of facing wrinkling under pressure load. Increase core compressive or shear modulus."); allChecksAcceptable = false; }
@@ -959,8 +1014,8 @@
         setParamRow('p5', delta_th.toFixed(2) + " mm", "<= " + delta_th_limit.toFixed(2) + " mm (L/300)", p5_pass);
         if (!p5_pass) { recommendations.push("Thermal bowing deflection exceeds L/300. Reduce temperature differential or increase panel thickness (D_c)."); allChecksAcceptable = false; }
 
-        const B_panel = (E_s * t_f * Math.pow(D_c, 2)) / 2; 
-        const q_mm = q_air / 1000000; 
+        const B_panel = parseFloat(document.getElementById('mmBpanel').value);
+        const q_mm = q_air / 1000000;
         const delta_pr = (5 * q_mm * Math.pow(L * 1000, 4)) / (384 * B_panel); 
         const delta_pr_limit = (L * 1000) / 240; 
         const p6_pass = delta_pr <= delta_pr_limit;
