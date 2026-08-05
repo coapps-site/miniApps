@@ -555,10 +555,10 @@
                 </div>
                 <div class="input-group">
                     <label>Base Anchor Spacing s<sub>a</sub> (m)</label>
-                    <input type="number" id="anchorSpacing" step="0.05" value="0.60">
+                    <input type="number" id="anchorSpacing" step="0.1" value="4.50">
                 </div>
             </div>
-            <p class="hint">Trusses span the room's shorter side and repeat at S<sub>truss</sub> centres along the longer side, with a minimum of 2 trusses regardless of spacing. For a square room (L<sub>r</sub> = W<sub>r</sub>) the automatic rule is ambiguous &mdash; set Truss Span Direction explicitly. Truss spans of 12.0m or more require top suspended support (Check 18); below 12.0m no top suspended support is required. Base Anchor Spacing s<sub>a</sub> is the centre-to-centre spacing of anchors along the base track &mdash; independent of Post Spacing S<sub>post</sub> &mdash; and sets the tributary width for Check 15's per-anchor shear demand.</p>
+            <p class="hint">Trusses span the room's shorter side and repeat at S<sub>truss</sub> centres along the longer side, with a minimum of 2 trusses regardless of spacing. For a square room (L<sub>r</sub> = W<sub>r</sub>) the automatic rule is ambiguous &mdash; set Truss Span Direction explicitly. Truss spans of 12.0m or more require top suspended support (Check 18); below 12.0m no top suspended support is required. Base Anchor Spacing s<sub>a</sub> is the centre-to-centre spacing of anchors along the base track on a straight run &mdash; typically 4&ndash;5m, independent of Post Spacing S<sub>post</sub> &mdash; and sets the tributary width for Check 15's per-anchor shear demand. Top track anchors (typically at ~1.2m centres) are not currently a separate check.</p>
         </div>
 
         <!-- SECTION 7: LOADS & SERVICE ALLOCATIONS -->
@@ -855,7 +855,7 @@
         coreShearModulus: "2.5", coreShearStrength: "0.08",
         tempIn: "20", tempOut: "35", coeffAlpha: "0.000012", targetFreq: "8.0",
         postSpacing: "2.40", trussSpacing: "3.00", trussDirection: "auto", topSuspendedSupport: "no", postInertia: "125",
-        postModulus: "22", fastenerShear: "2.2", anchorSpacing: "0.60",
+        postModulus: "22", fastenerShear: "2.2", anchorSpacing: "4.50",
         diffPressure: "50", walkoverLoad: "100.0", otherServices: "10.0",
         mepLoad: "8.5", equipmentPoint: "25.0"
     };
