@@ -1,8 +1,8 @@
-const CACHE_NAME = 'rsa-engine-v1';
+const CACHE_NAME = 'rsa-engine-v2';
 const PRECACHE_URLS = [
   './',
   './index.html',
-  './manifest.webmanifest',
+  './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/maskable-icon-512.png'
