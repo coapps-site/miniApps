@@ -123,6 +123,16 @@
         input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(24, 169, 153, 0.15); }
         .hint { font-size: 11px; color: var(--text-muted); line-height: 1.5; margin: 10px 2px 0; padding-top: 10px; border-top: 1px dashed var(--border); }
 
+        .derived-box { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border); }
+        .derived-title { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
+        .derived-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+        .derived-item {
+            display: flex; flex-direction: column; gap: 2px; background: #f1f5f9;
+            border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
+        }
+        .derived-label { font-size: 10px; font-weight: 600; color: var(--text-muted); }
+        .derived-value { font-size: 14px; font-weight: 700; color: var(--primary-dark); font-variant-numeric: tabular-nums; }
+
         .action-btn {
             background-color: var(--primary); color: white; border: none; width: 100%;
             padding: 14px; font-size: 15px; font-weight: 700; border-radius: 10px;
@@ -310,6 +320,27 @@
                 <div class="input-group">
                     <label>Core Shear Capacity f<sub>vk</sub> (MPa)</label>
                     <input type="number" id="coreShearStrength" step="0.01" value="0.08">
+                </div>
+            </div>
+            <div class="derived-box" id="mmDerivedBox">
+                <div class="derived-title">Derived Section Properties &mdash; live, from Panel Width B, Core Thickness D<sub>c</sub> &amp; Facing Thickness t<sub>f</sub></div>
+                <div class="derived-grid">
+                    <div class="derived-item">
+                        <span class="derived-label">Panel Bending Capacity M<sub>rd</sub></span>
+                        <span class="derived-value" id="mmMrd">&ndash;</span>
+                    </div>
+                    <div class="derived-item">
+                        <span class="derived-label">Facing Allowable Stress &sigma;<sub>allow</sub></span>
+                        <span class="derived-value" id="mmSigmaAllow">&ndash;</span>
+                    </div>
+                    <div class="derived-item">
+                        <span class="derived-label">Facing Wrinkling Allowable &sigma;<sub>w,allow</sub></span>
+                        <span class="derived-value" id="mmWrinkle">&ndash;</span>
+                    </div>
+                    <div class="derived-item">
+                        <span class="derived-label">Panel Flexural Rigidity B<sub>panel</sub></span>
+                        <span class="derived-value" id="mmBpanel">&ndash;</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -666,6 +697,34 @@
         mepLoad: "8.5", equipmentPoint: "25.0"
     };
 
+    function updateMaterialMechanicsLive() {
+        const B = parseFloat(document.getElementById('panelWidth').value);
+        const D_c = parseFloat(document.getElementById('coreThickness').value); // mm
+        const t_f = parseFloat(document.getElementById('facingThickness').value); // mm
+        const E_s = parseFloat(document.getElementById('facingModulus').value) * 1000; // MPa
+        const f_y = parseFloat(document.getElementById('facingYield').value); // MPa
+        const E_c = parseFloat(document.getElementById('coreCompModulus').value); // MPa
+        const G_c = parseFloat(document.getElementById('coreShearModulus').value); // MPa
+
+        const fields = [B, D_c, t_f, E_s, f_y, E_c, G_c];
+        if (fields.some(v => !Number.isFinite(v) || v <= 0)) {
+            ['mmMrd', 'mmSigmaAllow', 'mmWrinkle', 'mmBpanel'].forEach(id => {
+                document.getElementById(id).innerText = '–';
+            });
+            return;
+        }
+
+        const M_rd = (f_y * t_f * D_c) / 1000; // kNm/m
+        const sigma_allow = f_y / 1.25; // MPa
+        const sigma_w_allow = (0.5 * Math.pow(E_s * E_c * G_c, 1 / 3)) / 1.25; // MPa
+        const B_panel = (E_s * t_f * Math.pow(D_c, 2)) / 2; // N.mm2/mm width
+
+        document.getElementById('mmMrd').innerText = M_rd.toFixed(3) + ' kNm/m';
+        document.getElementById('mmSigmaAllow').innerText = sigma_allow.toFixed(2) + ' MPa';
+        document.getElementById('mmWrinkle').innerText = sigma_w_allow.toFixed(2) + ' MPa';
+        document.getElementById('mmBpanel').innerText = B_panel.toExponential(3) + ' N·mm² (per mm width)';
+    }
+
     function updateRoomShapeUI() {
         const isLShaped = document.getElementById("roomShape").value === "L-Shaped";
         document.querySelectorAll(".notch-field").forEach(el => { el.hidden = !isLShaped; });
@@ -709,6 +768,7 @@
             if (Object.prototype.hasOwnProperty.call(state, el.id)) el.value = state[el.id];
         });
         updateRoomShapeUI();
+        updateMaterialMechanicsLive();
     }
     function saveDraft() {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState())); } catch (e) { /* storage unavailable */ }
@@ -777,6 +837,7 @@
             if (saved) applyState(saved);
         } catch (e) { /* ignore corrupt draft */ }
         updateRoomShapeUI();
+        updateMaterialMechanicsLive();
         renderTruss(2);
         let heroCollapsed = true;
         try { const stored = localStorage.getItem(HERO_KEY); if (stored !== null) heroCollapsed = stored === "1"; } catch (e) { /* default to collapsed */ }
@@ -785,6 +846,7 @@
             setHeroCollapsed(!document.getElementById("hero").classList.contains("collapsed"));
         });
         document.getElementById("inputForm").addEventListener("input", saveDraft);
+        document.getElementById("inputForm").addEventListener("input", updateMaterialMechanicsLive);
         document.getElementById("roomShape").addEventListener("change", () => { updateRoomShapeUI(); saveDraft(); });
         document.getElementById("importFile").addEventListener("change", e => {
             if (e.target.files && e.target.files[0]) { importData(e.target.files[0]); e.target.value = ""; }
