@@ -256,15 +256,15 @@
     <div class="hero-body" id="heroBody">
         <div>
             <small>SANDWICH PANEL &middot; MULLION &amp; FASTENER &middot; STRUCTURAL VERIFICATION</small>
-            <h2>Room structural analysis,<br>checked against 18 criteria.</h2>
+            <h2>Room structural analysis,<br>checked against 18+ criteria.</h2>
             <p>Panel bending, core shear, thermal bowing, deflection, ceiling load, natural frequency, mullion buckling and fastener capacity &mdash; all editable, with a complete 4-page technical report.</p>
         </div>
         <div class="hero-badge">
-            <svg viewBox="0 0 220 220" width="180" height="180" role="img" aria-label="18 verification checks">
+            <svg viewBox="0 0 220 220" width="180" height="180" role="img" aria-label="18+ verification checks">
                 <circle cx="110" cy="110" r="96" class="badge-ring" stroke-width="1.5"></circle>
                 <circle cx="110" cy="110" r="70" class="badge-ring" stroke-width="1" stroke-dasharray="2 6"></circle>
                 <circle cx="110" cy="110" r="54" fill="#fff"></circle>
-                <text x="110" y="102" text-anchor="middle" class="badge-value">18</text>
+                <text x="110" y="102" text-anchor="middle" class="badge-value">18+</text>
                 <text x="110" y="124" text-anchor="middle" class="badge-sub">checks</text>
             </svg>
         </div>
@@ -419,7 +419,7 @@
                 </div>
             </div>
             <p class="hint">
-                <strong>Simple Span</strong> &mdash; panel/post spans floor-to-ceiling (H<sub>r</sub>) with no intermediate support; both ends free to rotate. Current default, and the basis for all 18 checks as originally implemented.<br>
+                <strong>Simple Span</strong> &mdash; panel/post spans floor-to-ceiling (H<sub>r</sub>) with no intermediate support; both ends free to rotate. Current default, and the basis for all 19 checks as originally implemented.<br>
                 <strong>Continuous</strong> &mdash; panel/post continues over an intermediate support (e.g. a mezzanine or mid-height girt tied into structure); lower moment and deflection than simple span for the same total height.<br>
                 <strong>Cantilever</strong> &mdash; fixed at the base, free at the top (e.g. parapet or partial-height wall); higher moment, deflection and buckling demand than simple span for the same height.<br>
                 <strong>Braced</strong> &mdash; simple-span behaviour but at a shorter effective span, set by an intermediate horizontal girt/purlin at the spacing given below (rather than the full H<sub>r</sub>).
@@ -557,8 +557,12 @@
                     <label>Base Anchor Spacing s<sub>a</sub> (m)</label>
                     <input type="number" id="anchorSpacing" step="0.1" value="4.50">
                 </div>
+                <div class="input-group">
+                    <label>Top Anchor Spacing s<sub>at</sub> (m)</label>
+                    <input type="number" id="topAnchorSpacing" step="0.1" value="1.20">
+                </div>
             </div>
-            <p class="hint">Trusses span the room's shorter side and repeat at S<sub>truss</sub> centres along the longer side, with a minimum of 2 trusses regardless of spacing. For a square room (L<sub>r</sub> = W<sub>r</sub>) the automatic rule is ambiguous &mdash; set Truss Span Direction explicitly. Truss spans of 12.0m or more require top suspended support (Check 18); below 12.0m no top suspended support is required. Base Anchor Spacing s<sub>a</sub> is the centre-to-centre spacing of anchors along the base track on a straight run &mdash; typically 4&ndash;5m, independent of Post Spacing S<sub>post</sub> &mdash; and sets the tributary width for Check 15's per-anchor shear demand. Top track anchors (typically at ~1.2m centres) are not currently a separate check.</p>
+            <p class="hint">Trusses span the room's shorter side and repeat at S<sub>truss</sub> centres along the longer side, with a minimum of 2 trusses regardless of spacing. For a square room (L<sub>r</sub> = W<sub>r</sub>) the automatic rule is ambiguous &mdash; set Truss Span Direction explicitly. Truss spans of 12.0m or more require top suspended support (Check 18); below 12.0m no top suspended support is required. Base Anchor Spacing s<sub>a</sub> is the centre-to-centre spacing of anchors along the base track on a straight run &mdash; typically 4&ndash;5m, independent of Post Spacing S<sub>post</sub> &mdash; and sets the tributary width for Check 15's per-anchor shear demand. Top Anchor Spacing s<sub>at</sub> is the equivalent spacing for the top track (typically ~1.2m) and sets the tributary width for Check 19; both checks share the same Fastener Shear Capacity V<sub>rd</sub>. For a Cantilever support condition the top is free (no reaction), so Check 19 demand is zero by definition.</p>
         </div>
 
         <!-- SECTION 7: LOADS & SERVICE ALLOCATIONS -->
@@ -637,6 +641,7 @@
                     <tr><td>16</td><td>Door Opening Lintel Moment</td><td id="p16_val">-</td><td id="p16_lim">-</td><td id="p16_stat">-</td></tr>
                     <tr><td>17</td><td>Services Allocation Limit (I<sub>2</sub>)</td><td id="p17_val">-</td><td id="p17_lim">-</td><td id="p17_stat">-</td></tr>
                     <tr><td>18</td><td>Truss Span &amp; Top Suspended Support</td><td id="p18_val">-</td><td id="p18_lim">-</td><td id="p18_stat">-</td></tr>
+                    <tr><td>19</td><td>Top Fastener Shear (V<sub>act,top</sub>)</td><td id="p19_val">-</td><td id="p19_lim">-</td><td id="p19_stat">-</td></tr>
                 </tbody>
             </table>
         </div>
@@ -835,6 +840,7 @@
                     <tr><td>16</td><td>Lintel Opening Moment</td><td class="formula-code">M<sub>lintel</sub> = (q<sub>tot</sub> · g · L<sub>door</sub>³) / 8</td><td>&lt;= 1.200 kNm (Header)</td></tr>
                     <tr><td>17</td><td>Services Allocation Limit</td><td class="formula-code">I<sub>2</sub> (Declared Input)</td><td>&lt;= 25.0 kg/m² Allocation</td></tr>
                     <tr><td>18</td><td>Truss Span / Support Rule</td><td class="formula-code">Span = shorter of (L<sub>r</sub>, W<sub>r</sub>); bays = max(2, round(longer side / S<sub>truss</sub>))</td><td>&lt; 12.0m no support required; &gt;= 12.0m requires top suspended support</td></tr>
+                    <tr><td>19</td><td>Top Fastener Shear</td><td class="formula-code">V<sub>act,top</sub> = q<sub>air</sub> · s<sub>at</sub> · L · R<sub>top</sub></td><td>&lt;= V<sub>rd</sub> per anchor (R<sub>top</sub> = 0 for Cantilever)</td></tr>
                 </tbody>
             </table>
         </div>
@@ -855,7 +861,7 @@
         coreShearModulus: "2.5", coreShearStrength: "0.08",
         tempIn: "20", tempOut: "35", coeffAlpha: "0.000012", targetFreq: "8.0",
         postSpacing: "2.40", trussSpacing: "3.00", trussDirection: "auto", topSuspendedSupport: "no", postInertia: "125",
-        postModulus: "22", fastenerShear: "2.2", anchorSpacing: "4.50",
+        postModulus: "22", fastenerShear: "2.2", anchorSpacing: "4.50", topAnchorSpacing: "1.20",
         diffPressure: "50", walkoverLoad: "100.0", otherServices: "10.0",
         mepLoad: "8.5", equipmentPoint: "25.0"
     };
@@ -956,7 +962,8 @@
             { id: 'postInertia', label: 'Post Moment of Inertia Ix', unit: 'cm⁴' },
             { id: 'postModulus', label: 'Post Section Modulus Zx', unit: 'cm³' },
             { id: 'fastenerShear', label: 'Fastener Shear Capacity Vrd', unit: 'kN' },
-            { id: 'anchorSpacing', label: 'Base Anchor Spacing sa', unit: 'm' }
+            { id: 'anchorSpacing', label: 'Base Anchor Spacing sa', unit: 'm' },
+            { id: 'topAnchorSpacing', label: 'Top Anchor Spacing sat', unit: 'm' }
         ] },
         { title: 'Loading & Services Allocations', fields: [
             { id: 'diffPressure', label: 'Air Differential Pressure qair', unit: 'Pa' },
@@ -1002,11 +1009,14 @@
     // (braceSpacing) instead of the full room height H_r.
     // continuous/cantilever coefficients are standard published approximations for UDL beams;
     // treat them as typical/preliminary values, not a substitute for a full continuous-beam analysis.
+    // reactionFrac is the base/fixed-end reaction fraction (used by Check 15, base anchors).
+    // topReactionFrac is the top-end reaction fraction (Check 19, top anchors) — equal to
+    // reactionFrac for the symmetric conditions, but zero for Cantilever since the top is free.
     const SUPPORT_CONDITIONS = {
-        simple:     { momentCoef: 1 / 8,  deflCoef: 5 / 384, thermalCoef: 1 / 8,  reactionFrac: 0.5, bucklingK: 1.0, useBraceSpacing: false },
-        continuous: { momentCoef: 1 / 10, deflCoef: 1 / 145, thermalCoef: 1 / 10, reactionFrac: 0.6, bucklingK: 1.0, useBraceSpacing: false },
-        cantilever: { momentCoef: 1 / 2,  deflCoef: 1 / 8,   thermalCoef: 1 / 2,  reactionFrac: 1.0, bucklingK: 2.0, useBraceSpacing: false },
-        braced:     { momentCoef: 1 / 8,  deflCoef: 5 / 384, thermalCoef: 1 / 8,  reactionFrac: 0.5, bucklingK: 1.0, useBraceSpacing: true }
+        simple:     { momentCoef: 1 / 8,  deflCoef: 5 / 384, thermalCoef: 1 / 8,  reactionFrac: 0.5, topReactionFrac: 0.5, bucklingK: 1.0, useBraceSpacing: false },
+        continuous: { momentCoef: 1 / 10, deflCoef: 1 / 145, thermalCoef: 1 / 10, reactionFrac: 0.6, topReactionFrac: 0.6, bucklingK: 1.0, useBraceSpacing: false },
+        cantilever: { momentCoef: 1 / 2,  deflCoef: 1 / 8,   thermalCoef: 1 / 2,  reactionFrac: 1.0, topReactionFrac: 0.0, bucklingK: 2.0, useBraceSpacing: false },
+        braced:     { momentCoef: 1 / 8,  deflCoef: 5 / 384, thermalCoef: 1 / 8,  reactionFrac: 0.5, topReactionFrac: 0.5, bucklingK: 1.0, useBraceSpacing: true }
     };
 
     function updateSupportConditionUI() {
@@ -1190,6 +1200,7 @@
         const Z_x = parseFloat(document.getElementById('postModulus').value); // cm3
         const V_rd = parseFloat(document.getElementById('fastenerShear').value); // kN
         const anchorSpacing = parseFloat(document.getElementById('anchorSpacing').value); // m
+        const topAnchorSpacing = parseFloat(document.getElementById('topAnchorSpacing').value); // m
 
         // Services, Pressure & Walkover Live Load
         const q_air = parseFloat(document.getElementById('diffPressure').value); // Pa (N/m2)
@@ -1379,6 +1390,13 @@
             p18_pass);
         if (!p18_pass) { recommendations.push("Truss span is " + trussSpanDim.toFixed(2) + "m (\u2265 12.0m) but top suspended support is not marked as provided. Add top suspended support or confirm it in the input register."); allChecksAcceptable = false; }
         if (trussDirectionAmbiguous) { recommendations.push("Room is square (L_r = W_r): truss span direction was defaulted to Length. Set Truss Span Direction explicitly to confirm the intended layout."); }
+
+        // Top track anchor shear demand: same tributary-width logic as Check 15 (base anchors),
+        // but using the top reaction fraction, which is zero for Cantilever (free top).
+        const V_act_top = (q_air * topAnchorSpacing * L * coef.topReactionFrac) / 1000;
+        const p19_pass = V_act_top <= V_rd;
+        setParamRow('p19', V_act_top.toFixed(3) + " kN", "<= " + V_rd.toFixed(2) + " kN per anchor", p19_pass);
+        if (!p19_pass) { recommendations.push("Top track fastener shear demand from pressure exceeds capacity. Decrease top anchor spacing (s_at) or upgrade anchor diameter."); allChecksAcceptable = false; }
 
         // Dynamic Updates to Banners & Captions
         document.getElementById('diag1DT').innerText = deltaT.toFixed(0);
