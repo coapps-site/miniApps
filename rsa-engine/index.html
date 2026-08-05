@@ -162,7 +162,7 @@
         .report-header p { margin: 2px 0 0 0; color: #60717a; font-size: 10px; }
         
         .room-meta-banner {
-            display: flex; justify-content: space-between; background: #f1f5f9;
+            display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; background: #f1f5f9;
             padding: 6px 12px; border-radius: 4px; margin-top: 6px; font-size: 10px; font-weight: 600; color: #12384b;
         }
 
@@ -307,6 +307,32 @@
                 </div>
             </div>
             <p class="hint" id="notchHint" hidden>The notch is cut from one corner of the L<sub>r</sub> &times; W<sub>r</sub> rectangle (rectangular footprint minus L<sub>n</sub> &times; W<sub>n</sub>). Wall panel span calculations continue to use H<sub>r</sub> and the governing L<sub>r</sub>/W<sub>r</sub> run; confirm the notch wall run against the actual layout for post/truss spacing.</p>
+        </div>
+
+        <!-- SECTION 1B: SUPPORT CONDITION / SPAN TOPOLOGY -->
+        <div class="section-panel">
+            <div class="panel-title">1B. Support Condition (Wall Panel &amp; Post Span Topology)</div>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>Support Condition</label>
+                    <select id="supportCondition">
+                        <option value="simple">Simple Span (pin&ndash;pin)</option>
+                        <option value="continuous">Continuous (multi-span)</option>
+                        <option value="cantilever">Cantilever (fixed&ndash;free)</option>
+                        <option value="braced">Braced (girt/purlin at reduced spacing)</option>
+                    </select>
+                </div>
+                <div class="input-group support-braced-field" hidden>
+                    <label>Effective Brace/Girt Spacing (m)</label>
+                    <input type="number" id="braceSpacing" step="0.1" value="1.75">
+                </div>
+            </div>
+            <p class="hint">
+                <strong>Simple Span</strong> &mdash; panel/post spans floor-to-ceiling (H<sub>r</sub>) with no intermediate support; both ends free to rotate. Current default, and the basis for all 18 checks as originally implemented.<br>
+                <strong>Continuous</strong> &mdash; panel/post continues over an intermediate support (e.g. a mezzanine or mid-height girt tied into structure); lower moment and deflection than simple span for the same total height.<br>
+                <strong>Cantilever</strong> &mdash; fixed at the base, free at the top (e.g. parapet or partial-height wall); higher moment, deflection and buckling demand than simple span for the same height.<br>
+                <strong>Braced</strong> &mdash; simple-span behaviour but at a shorter effective span, set by an intermediate horizontal girt/purlin at the spacing given below (rather than the full H<sub>r</sub>).
+            </p>
         </div>
 
         <!-- SECTION 2: MATERIAL MECHANICS -->
@@ -481,6 +507,7 @@
                     <div>ROOM ID: <span id="rptRoomId">RM-101</span></div>
                     <div>DESC: <span id="rptRoomDesc">ISO Class 7 Cleanroom Buffer Area</span></div>
                     <div>DIMENSIONS: <span id="rptRoomDims">6.00m x 4.00m x 3.50m (24.0 m²)</span></div>
+                    <div>SUPPORT: <span id="rptSupportCond">Simple Span (pin&ndash;pin)</span></div>
                 </div>
             </div>
 
@@ -716,6 +743,7 @@
         roomId: "RM-000", roomDesc: "New Room", roomShape: "Rectangular",
         roomLength: "6.00", roomWidth: "4.00", roomHeight: "3.50",
         notchLength: "2.00", notchWidth: "1.50",
+        supportCondition: "simple", braceSpacing: "1.75",
         panelWidth: "1.18", coreThickness: "50", facingThickness: "0.60",
         facingModulus: "210", facingYield: "280", coreCompModulus: "4.0",
         coreShearModulus: "2.5", coreShearStrength: "0.08",
@@ -781,6 +809,24 @@
         document.getElementById("isoLBlock").style.display = isLShaped ? "" : "none";
     }
 
+    // Span-topology coefficients for wall panels & mullion posts, applied uniformly to both.
+    // "braced" uses the same simple-span physics as "simple" but at a shorter effective span
+    // (braceSpacing) instead of the full room height H_r.
+    // continuous/cantilever coefficients are standard published approximations for UDL beams;
+    // treat them as typical/preliminary values, not a substitute for a full continuous-beam analysis.
+    const SUPPORT_CONDITIONS = {
+        simple:     { momentCoef: 1 / 8,  deflCoef: 5 / 384, thermalCoef: 1 / 8,  reactionFrac: 0.5, bucklingK: 1.0, useBraceSpacing: false },
+        continuous: { momentCoef: 1 / 10, deflCoef: 1 / 145, thermalCoef: 1 / 10, reactionFrac: 0.6, bucklingK: 1.0, useBraceSpacing: false },
+        cantilever: { momentCoef: 1 / 2,  deflCoef: 1 / 8,   thermalCoef: 1 / 2,  reactionFrac: 1.0, bucklingK: 2.0, useBraceSpacing: false },
+        braced:     { momentCoef: 1 / 8,  deflCoef: 5 / 384, thermalCoef: 1 / 8,  reactionFrac: 0.5, bucklingK: 1.0, useBraceSpacing: true }
+    };
+
+    function updateSupportConditionUI() {
+        const condition = document.getElementById("supportCondition").value;
+        const useBrace = SUPPORT_CONDITIONS[condition] ? SUPPORT_CONDITIONS[condition].useBraceSpacing : false;
+        document.querySelectorAll(".support-braced-field").forEach(el => { el.hidden = !useBrace; });
+    }
+
     function renderTruss(bays) {
         const xStart = 40, xEnd = 460, yTop = 25, yBottom = 45;
         const n = Math.min(24, Math.max(1, Math.round(bays))); // rendering cap only - reported bay count is unaffected
@@ -818,6 +864,7 @@
             if (Object.prototype.hasOwnProperty.call(state, el.id)) el.value = state[el.id];
         });
         updateRoomShapeUI();
+        updateSupportConditionUI();
         updateMaterialMechanicsLive();
     }
     function saveDraft() {
@@ -887,6 +934,7 @@
             if (saved) applyState(saved);
         } catch (e) { /* ignore corrupt draft */ }
         updateRoomShapeUI();
+        updateSupportConditionUI();
         updateMaterialMechanicsLive();
         renderTruss(2);
         let heroCollapsed = true;
@@ -903,6 +951,7 @@
         });
         refreshDerivedStatusUI();
         document.getElementById("roomShape").addEventListener("change", () => { updateRoomShapeUI(); saveDraft(); });
+        document.getElementById("supportCondition").addEventListener("change", () => { updateSupportConditionUI(); saveDraft(); });
         document.getElementById("importFile").addEventListener("change", e => {
             if (e.target.files && e.target.files[0]) { importData(e.target.files[0]); e.target.value = ""; }
         });
@@ -972,7 +1021,16 @@
         document.getElementById('diagIsoShape').innerText = isLShaped ? 'L-Shaped Footprint' : 'Rectangular Footprint';
         updateRoomShapeUI();
 
-        const L = H_r; // Wall panel height span (m)
+        // Support condition / span topology — applied uniformly to both wall panel and
+        // mullion post formulas. "braced" uses the brace/girt spacing as the effective
+        // span instead of the full room height.
+        const supportCondition = document.getElementById('supportCondition').value;
+        const coef = SUPPORT_CONDITIONS[supportCondition] || SUPPORT_CONDITIONS.simple;
+        const braceSpacing = parseFloat(document.getElementById('braceSpacing').value);
+        const L = coef.useBraceSpacing && Number.isFinite(braceSpacing) ? braceSpacing : H_r; // Wall panel / post span (m)
+        const SUPPORT_LABELS = { simple: 'Simple Span (pin–pin)', continuous: 'Continuous (multi-span)', cantilever: 'Cantilever (fixed–free)', braced: 'Braced (' + L.toFixed(2) + 'm effective span)' };
+        document.getElementById('rptSupportCond').innerText = SUPPORT_LABELS[supportCondition] || SUPPORT_LABELS.simple;
+
         const recommendations = [];
         let allChecksAcceptable = true;
 
@@ -981,7 +1039,7 @@
         // "Derived Section Properties" fields — auto-calculated live from B/D_c/t_f, but
         // user-editable there, so an override takes effect here too.
         updateMaterialMechanicsLive();
-        const M_act = (q_air * Math.pow(L, 2)) / (8 * 1000);
+        const M_act = (q_air * Math.pow(L, 2) * coef.momentCoef) / 1000;
         const M_rd = parseFloat(document.getElementById('mmMrd').value);
         const p1_pass = M_act <= M_rd;
         setParamRow('p1', M_act.toFixed(4) + " kNm/m", "<= " + M_rd.toFixed(3) + " kNm/m (Capacity)", p1_pass);
@@ -993,7 +1051,7 @@
         setParamRow('p2', sigma_f.toFixed(2) + " MPa", "<= " + sigma_f_allow.toFixed(2) + " MPa (Yield Limit)", p2_pass);
         if (!p2_pass) { recommendations.push("Facing stress exceeds allowable yield limit. Upgrade facing steel yield strength (f_y) or thickness (t_f)."); allChecksAcceptable = false; }
 
-        const V_max = (q_air * L) / 2;
+        const V_max = q_air * L * coef.reactionFrac;
         const tau_max = V_max / (D_c * 1000);
         const p3_pass = tau_max <= f_vk;
         setParamRow('p3', tau_max.toFixed(4) + " MPa", "<= " + f_vk.toFixed(2) + " MPa (Material Limit)", p3_pass);
@@ -1008,16 +1066,16 @@
         document.getElementById('diag3SigmaW').parentNode.style.fill = p4_pass ? '#287552' : '#b84242';
 
         const deltaT = Math.abs(T_out - T_in);
-        const delta_th = (alpha * deltaT * Math.pow(L * 1000, 2)) / (8 * D_c); 
-        const delta_th_limit = (L * 1000) / 300; 
+        const delta_th = alpha * deltaT * Math.pow(L * 1000, 2) * coef.thermalCoef / D_c;
+        const delta_th_limit = (L * 1000) / 300;
         const p5_pass = delta_th <= delta_th_limit;
         setParamRow('p5', delta_th.toFixed(2) + " mm", "<= " + delta_th_limit.toFixed(2) + " mm (L/300)", p5_pass);
         if (!p5_pass) { recommendations.push("Thermal bowing deflection exceeds L/300. Reduce temperature differential or increase panel thickness (D_c)."); allChecksAcceptable = false; }
 
         const B_panel = parseFloat(document.getElementById('mmBpanel').value);
         const q_mm = q_air / 1000000;
-        const delta_pr = (5 * q_mm * Math.pow(L * 1000, 4)) / (384 * B_panel); 
-        const delta_pr_limit = (L * 1000) / 240; 
+        const delta_pr = (q_mm * Math.pow(L * 1000, 4) * coef.deflCoef) / B_panel;
+        const delta_pr_limit = (L * 1000) / 240;
         const p6_pass = delta_pr <= delta_pr_limit;
         setParamRow('p6', delta_pr.toFixed(2) + " mm", "<= " + delta_pr_limit.toFixed(2) + " mm (L/240)", p6_pass);
         if (!p6_pass) { recommendations.push("Pressure deflection exceeds L/240 limit. Reduce differential pressure or increase panel section rigidity."); allChecksAcceptable = false; }
@@ -1053,16 +1111,16 @@
         setParamRow('p11', P_ax.toFixed(1) + " kg", "<= " + P_ax_limit.toFixed(1) + " kg Specified", p11_pass);
         if (!p11_pass) { recommendations.push("Mullion post axial load is high. Reduce post spacing (S_post) or truss spacing (S_truss) to distribute load."); allChecksAcceptable = false; }
 
-        const E_alum = 70000; 
-        const I_x_mm4 = I_x * 10000; 
-        const P_crit_N = (Math.pow(Math.PI, 2) * E_alum * I_x_mm4) / Math.pow(L * 1000, 2);
+        const E_alum = 70000;
+        const I_x_mm4 = I_x * 10000;
+        const P_crit_N = (Math.pow(Math.PI, 2) * E_alum * I_x_mm4) / Math.pow(coef.bucklingK * L * 1000, 2);
         const P_crit_kg = P_crit_N / 9.81;
         const P_allow_kg = P_crit_kg / 1.5; 
         const p12_pass = P_ax <= P_allow_kg;
         setParamRow('p12', P_ax.toFixed(1) + " kg", "<= " + P_allow_kg.toFixed(2) + " kg (Euler Pcr)", p12_pass);
         if (!p12_pass) { recommendations.push("Mullion post buckling risk detected. Increase post moment of inertia (I_x) or reduce post height (H_r)."); allChecksAcceptable = false; }
 
-        const M_post = (q_air * S_post * Math.pow(L, 2)) / (8 * 1000); 
+        const M_post = (q_air * S_post * Math.pow(L, 2) * coef.momentCoef) / 1000;
         const M_post_rd = (240 * Z_x * 1000) / 1000000; 
         const p13_pass = M_post <= M_post_rd;
         setParamRow('p13', M_post.toFixed(4) + " kNm", "<= " + M_post_rd.toFixed(3) + " kNm Yield", p13_pass);
@@ -1075,7 +1133,7 @@
         setParamRow('p14', interaction_pct.toFixed(1) + " %", "<= 100.0 % Interaction", p14_pass);
         if (!p14_pass) { recommendations.push("Combined axial and pressure bending interaction ratio exceeds 100%. Upgrade post profile section."); allChecksAcceptable = false; }
 
-        const V_act = (q_air * S_post * L) / (2 * 1000); 
+        const V_act = (q_air * S_post * L * coef.reactionFrac) / 1000;
         const p15_pass = V_act <= V_rd;
         setParamRow('p15', V_act.toFixed(3) + " kN", "<= " + V_rd.toFixed(2) + " kN per anchor", p15_pass);
         if (!p15_pass) { recommendations.push("Base track fastener shear demand from pressure exceeds capacity. Decrease fastener spacing or upgrade anchor diameter."); allChecksAcceptable = false; }
