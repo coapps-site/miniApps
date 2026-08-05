@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#12384b">
+    <meta name="description" content="Structural, thermal and dynamic verification engine for cleanroom sandwich-panel wall and ceiling systems.">
+    <title>RSA Structural Engine & Portal</title>
+
+    <!-- PWA: installability -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="RSA Engine">
+
+    <!-- Client-Side PDF Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #eef3f4;
+            --panel-bg: #ffffff;
+            --navy: #0b2732;
+            --navy2: #12384b;
+            --primary: #18a999;
+            --primary-dark: #0c8e87;
+            --text-main: #14232b;
+            --text-muted: #60717a;
+            --border: #d6e0e3;
+            --pass: #287552;
+            --fail: #b84242;
+            --amber: #eea53b;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0; padding: 0;
+            display: flex; flex-direction: column; height: 100vh;
+        }
+
+        header {
+            background-color: var(--navy2); color: white; padding: 0 20px; height: 62px;
+            display: flex; justify-content: space-between; align-items: center; gap: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15); flex-wrap: wrap;
+        }
+        .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; white-space: nowrap; }
+        .brand-logo { height: 30px; width: auto; background: #fff; border-radius: 6px; padding: 3px 7px; display: block; }
+        .brand-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex: none; }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.25; }
+        .brand-text strong { font-size: 14px; letter-spacing: .02em; }
+        .brand-text small { font-size: 9px; color: #9bb1bc; letter-spacing: .1em; font-weight: 700; }
+        .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .header-actions button, .header-actions .file-button {
+            border: 1px solid #516e7c; background: transparent; color: #fff;
+            padding: 8px 12px; border-radius: 7px; font-weight: 650; font-size: 12px; cursor: pointer;
+            position: relative; overflow: hidden;
+        }
+        .header-actions .file-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .header-actions button:hover, .header-actions .file-button:hover { background: rgba(255,255,255,.08); }
+
+        .hero {
+            background: linear-gradient(135deg, #0b2732, #10515b); color: #fff;
+            position: relative; overflow: hidden; min-height: 44px;
+        }
+        .hero-body {
+            padding: 30px 56px 30px 20px; display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;
+            transition: max-height .25s ease, padding .25s ease, opacity .2s ease;
+            max-height: 260px; opacity: 1;
+        }
+        .hero.collapsed .hero-body { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; overflow: hidden; pointer-events: none; }
+        .hero-toggle {
+            position: absolute; top: 8px; right: 10px; z-index: 2;
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.25); color: #cfe3e6;
+            border-radius: 6px; padding: 5px 10px; font-size: 10px; font-weight: 700; letter-spacing: .04em;
+            cursor: pointer; text-transform: uppercase;
+        }
+        .hero-toggle:hover { background: rgba(255,255,255,.16); }
+        .hero-toggle-arrow { display: inline-block; transition: transform .2s ease; font-size: 9px; }
+        .hero.collapsed .hero-toggle-arrow { transform: rotate(180deg); }
+        .hero small { color: #77ded5; font-weight: 700; letter-spacing: .12em; font-size: 10px; }
+        .hero h2 { font: 26px/1.2 Georgia, serif; margin: 10px 0; max-width: 460px; }
+        .hero p { max-width: 460px; color: #c9dade; line-height: 1.55; font-size: 12.5px; margin: 0; }
+        .hero-badge { flex: none; }
+        .badge-ring { fill: none; stroke: #ffffff26; }
+        .badge-value { fill: #0b2732; font: 700 34px Georgia, serif; }
+        .badge-sub { fill: #4a6067; font: 10px Arial; }
+
+        header h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
+
+        main { flex: 1; overflow-y: auto; padding: 16px; max-width: 980px; margin: 0 auto; width: 100%; }
+
+        .section-panel {
+            background-color: var(--panel-bg);
+            border-radius: 10px; padding: 16px; margin-bottom: 16px;
+            box-shadow: var(--shadow); border: 1px solid var(--border); border-top: 4px solid var(--primary);
+        }
+
+        .panel-title {
+            font-size: 12px; font-weight: 700; color: var(--navy2);
+            margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase;
+            border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;
+        }
+
+        .input-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+
+        .input-group { margin-bottom: 8px; }
+        label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+        input, select {
+            width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+            border-radius: 6px; font-size: 13px; transition: border-color 0.2s;
+            font-family: inherit; background: #fff; color: var(--text-main);
+        }
+        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(24, 169, 153, 0.15); }
+        .hint { font-size: 11px; color: var(--text-muted); line-height: 1.5; margin: 10px 2px 0; padding-top: 10px; border-top: 1px dashed var(--border); }
+
+        .action-btn {
+            background-color: var(--primary); color: white; border: none; width: 100%;
+            padding: 14px; font-size: 15px; font-weight: 700; border-radius: 10px;
+            cursor: pointer; box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3);
+            margin-bottom: 20px; transition: background 0.2s;
+        }
+        .action-btn:hover { background-color: var(--primary-dark); }
+
+        /* PDF Render Container */
+        .pdf-preview { display: none; background: white; padding: 20px; border-radius: 8px; border: 1px solid #d6e0e3; }
+        .pdf-preview.active { display: block; }
+
+        .report-header { text-align: center; border-bottom: 2px solid #12384b; padding-bottom: 8px; margin-bottom: 12px; }
+        .report-header h2 { margin: 0; color: #12384b; font-size: 15px; }
+        .report-header p { margin: 2px 0 0 0; color: #60717a; font-size: 10px; }
+        
+        .room-meta-banner {
+            display: flex; justify-content: space-between; background: #f1f5f9;
+            padding: 6px 12px; border-radius: 4px; margin-top: 6px; font-size: 10px; font-weight: 600; color: #12384b;
+        }
+
+        .overall-status-banner {
+            background: #dcfce7; color: #15803d; border: 1px solid #86efac;
+            text-align: center; font-weight: 800; font-size: 11px; letter-spacing: 0.5px;
+            padding: 6px; margin: 10px 0; border-radius: 4px; display: none;
+        }
+
+        .results-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        .results-table th, .results-table td { border: 1px solid var(--border); padding: 4px 7px; font-size: 10px; text-align: left; }
+        .results-table th { background-color: #f8fafc; color: #12384b; font-weight: 700; }
+
+        .status-badge { font-weight: bold; padding: 2px 4px; border-radius: 4px; font-size: 9px; display: inline-block; }
+        .status-badge.pass { background: #dcfce7; color: #166534; }
+        .status-badge.fail { background: #fee2e2; color: #991b1b; }
+
+        /* FIX: Diagram Wrapper & SVG Canvas */
+        .diagrams-grid { display: flex; flex-direction: column; gap: 12px; margin: 12px 0; }
+        .diagram-box { border: 1px solid var(--border); border-radius: 6px; padding: 10px; background: #ffffff; text-align: center; }
+        .diagram-title { font-size: 10px; font-weight: 700; color: var(--primary-dark); margin-bottom: 6px; text-transform: uppercase; text-align: left; }
+        
+        .svg-container { width: 100%; height: 110px; display: block; overflow: hidden; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; }
+        .svg-container.iso-container { height: 140px; }
+        .svg-container svg { width: 100%; height: 100%; display: block; }
+
+        .recommendations-box { background: #fffbe3; border: 1px solid #fde047; border-left: 4px solid #eab308; padding: 8px 10px; font-size: 10px; color: #713f12; margin-top: 10px; border-radius: 4px; display: none; }
+        .narrative-box { background: #f1f5f9; border-left: 4px solid var(--primary); padding: 8px 10px; font-size: 10px; color: #334155; line-height: 1.35; margin-top: 10px; }
+        
+        /* Formula Sheet Styling */
+        .formula-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .formula-table th, .formula-table td { border: 1px solid var(--border); padding: 5px 8px; font-size: 9.5px; text-align: left; vertical-align: middle; }
+        .formula-table th { background-color: #12384b; color: white; font-weight: 600; }
+        .formula-code { font-family: "Courier New", Courier, monospace; font-weight: bold; color: #0c8e87; }
+
+        .page-break { page-break-before: always; margin-top: 15px; }
+
+        @media(max-width:720px){
+            .hero{padding:22px 16px}
+            .hero h2{font-size:21px}
+            .hero-badge svg{width:120px;height:120px}
+            .brand-text small{display:none}
+        }
+        @media print {
+            header, .hero, .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <a class="brand" href="#" onclick="return false"><img class="brand-logo" src="data:image/png;base64,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" alt="Airkey logo"><span class="brand-dot"></span><span class="brand-text"><strong>RSA STRUCTURAL ENGINE</strong><small>PANEL &amp; MULLION VERIFICATION PORTAL</small></span></a>
+    <div class="header-actions">
+        <label class="file-button">Import data<input type="file" id="importFile" accept="application/json"></label>
+        <button class="ghost" id="exportBtn" onclick="exportData()">Export data</button>
+        <button class="ghost" id="newProjectBtn" onclick="newProject()">New project</button>
+    </div>
+</header>
+
+<div class="hero" id="hero">
+    <button class="hero-toggle" id="heroToggle" type="button" aria-expanded="true" aria-controls="heroBody">
+        <span class="hero-toggle-label">Collapse</span><span class="hero-toggle-arrow">&#9650;</span>
+    </button>
+    <div class="hero-body" id="heroBody">
+        <div>
+            <small>SANDWICH PANEL &middot; MULLION &amp; FASTENER &middot; STRUCTURAL VERIFICATION</small>
+            <h2>Room structural analysis,<br>checked against 18 criteria.</h2>
+            <p>Panel bending, core shear, thermal bowing, deflection, ceiling load, natural frequency, mullion buckling and fastener capacity &mdash; all editable, with a complete 3-page technical report.</p>
+        </div>
+        <div class="hero-badge">
+            <svg viewBox="0 0 220 220" width="180" height="180" role="img" aria-label="18 verification checks">
+                <circle cx="110" cy="110" r="96" class="badge-ring" stroke-width="1.5"></circle>
+                <circle cx="110" cy="110" r="70" class="badge-ring" stroke-width="1" stroke-dasharray="2 6"></circle>
+                <circle cx="110" cy="110" r="54" fill="#fff"></circle>
+                <text x="110" y="102" text-anchor="middle" class="badge-value">18</text>
+                <text x="110" y="124" text-anchor="middle" class="badge-sub">checks</text>
+            </svg>
+        </div>
+    </div>
+</div>
+
+<main>
+    <div id="inputForm">
+        
+        <!-- SECTION 0: ROOM METADATA -->
+        <div class="section-panel">
+            <div class="panel-title">0. Room Identification & Metadata</div>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>Room ID / Tag</label>
+                    <input type="text" id="roomId" value="RM-101">
+                </div>
+                <div class="input-group">
+                    <label>Room Description</label>
+                    <input type="text" id="roomDesc" value="ISO Class 7 Cleanroom Buffer Area">
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 1: GEOMETRY -->
+        <div class="section-panel">
+            <div class="panel-title">1. Room Dimensions & Panel Geometry</div>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>Room Shape</label>
+                    <select id="roomShape">
+                        <option value="Rectangular">Rectangular</option>
+                        <option value="L-Shaped">L-Shaped</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Room Length L<sub>r</sub> (m)</label>
+                    <input type="number" id="roomLength" step="0.10" value="6.00">
+                </div>
+                <div class="input-group">
+                    <label>Room Width W<sub>r</sub> (m)</label>
+                    <input type="number" id="roomWidth" step="0.10" value="4.00">
+                </div>
+                <div class="input-group">
+                    <label>Room Clear Height H<sub>r</sub> (m)</label>
+                    <input type="number" id="roomHeight" step="0.05" value="3.50">
+                </div>
+                <div class="input-group notch-field" hidden>
+                    <label>L-Shape Notch Length L<sub>n</sub> (m)</label>
+                    <input type="number" id="notchLength" step="0.10" value="2.00">
+                </div>
+                <div class="input-group notch-field" hidden>
+                    <label>L-Shape Notch Width W<sub>n</sub> (m)</label>
+                    <input type="number" id="notchWidth" step="0.10" value="1.50">
+                </div>
+                <div class="input-group">
+                    <label>Panel Width B (m)</label>
+                    <input type="number" id="panelWidth" step="0.05" value="1.18">
+                </div>
+                <div class="input-group">
+                    <label>Core Thickness D<sub>c</sub> (mm)</label>
+                    <input type="number" id="coreThickness" step="1" value="50">
+                </div>
+                <div class="input-group">
+                    <label>Facing Thickness t<sub>f</sub> (mm)</label>
+                    <input type="number" id="facingThickness" step="0.05" value="0.60">
+                </div>
+            </div>
+            <p class="hint" id="notchHint" hidden>The notch is cut from one corner of the L<sub>r</sub> &times; W<sub>r</sub> rectangle (rectangular footprint minus L<sub>n</sub> &times; W<sub>n</sub>). Wall panel span calculations continue to use H<sub>r</sub> and the governing L<sub>r</sub>/W<sub>r</sub> run; confirm the notch wall run against the actual layout for post/truss spacing.</p>
+        </div>
+
+        <!-- SECTION 2: MATERIAL MECHANICS -->
+        <div class="section-panel">
+            <div class="panel-title">2. Material Mechanics (Facing & Core)</div>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>Facing Steel Modulus E<sub>s</sub> (GPa)</label>
+                    <input type="number" id="facingModulus" step="1" value="210">
+                </div>
+                <div class="input-group">
+                    <label>Facing Yield Strength f<sub>y</sub> (MPa)</label>
+                    <input type="number" id="facingYield" step="5" value="280">
+                </div>
+                <div class="input-group">
+                    <label>Core Compressive Modulus E<sub>c</sub> (MPa)</label>
+                    <input type="number" id="coreCompModulus" step="0.1" value="4.0">
+                </div>
+                <div class="input-group">
+                    <label>Core Shear Modulus G<sub>c</sub> (MPa)</label>
+                    <input type="number" id="coreShearModulus" step="0.1" value="2.5">
+                </div>
+                <div class="input-group">
+                    <label>Core Shear Capacity f<sub>vk</sub> (MPa)</label>
+                    <input type="number" id="coreShearStrength" step="0.01" value="0.08">
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: THERMAL & DYNAMICS -->
+        <div class="section-panel">
+            <div class="panel-title">3. Thermal Bowing & Dynamic Parameters</div>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>Internal Temperature T<sub>in</sub> (°C)</label>
+                    <input type="number" id="tempIn" step="1" value="20">
+                </div>
+                <div class="input-group">
+                    <label>External Temperature T<sub>out</sub> (°C)</label>
+                    <input type="number" id="tempOut" step="1" value="35">
+                </div>
+                <div class="input-group">
+                    <label>Thermal Expansion Coeff α (1/°C)</label>
+                    <input type="number" id="coeffAlpha" step="0.000001" value="0.000012">
+                </div>
+                <div class="input-group">
+                    <label>Target Natural Freq f<sub>min</sub> (Hz)</label>
+                    <input type="number" id="targetFreq" step="0.5" value="8.0">
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 4: POST, TRUSS & FASTENER MECHANICS -->
+        <div class="section-panel">
+            <div class="panel-title">4. Mullion Post, Truss & Fastener Mechanics</div>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>Post Spacing S<sub>post</sub> (m)</label>
+                    <input type="number" id="postSpacing" step="0.1" value="2.40">
+                </div>
+                <div class="input-group">
+                    <label>Roof Truss Spacing S<sub>truss</sub> (m)</label>
+                    <input type="number" id="trussSpacing" step="0.1" value="3.00">
+                </div>
+                <div class="input-group">
+                    <label>Truss Span Direction</label>
+                    <select id="trussDirection">
+                        <option value="auto">Automatic (shorter room side)</option>
+                        <option value="length">Along Length (L<sub>r</sub>)</option>
+                        <option value="width">Along Width (W<sub>r</sub>)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Top Suspended Support Provided?</label>
+                    <select id="topSuspendedSupport">
+                        <option value="no">No</option>
+                        <option value="yes">Yes</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Post Moment of Inertia I<sub>x</sub> (cm⁴)</label>
+                    <input type="number" id="postInertia" step="1" value="125">
+                </div>
+                <div class="input-group">
+                    <label>Post Section Modulus Z<sub>x</sub> (cm³)</label>
+                    <input type="number" id="postModulus" step="1" value="22">
+                </div>
+                <div class="input-group">
+                    <label>Fastener Shear Capacity V<sub>rd</sub> (kN)</label>
+                    <input type="number" id="fastenerShear" step="0.1" value="2.2">
+                </div>
+            </div>
+            <p class="hint">Trusses span the room's shorter side and repeat at S<sub>truss</sub> centres along the longer side, with a minimum of 2 trusses regardless of spacing. For a square room (L<sub>r</sub> = W<sub>r</sub>) the automatic rule is ambiguous &mdash; set Truss Span Direction explicitly. Truss spans of 12.0m or more require top suspended support (Check 18); below 12.0m no top suspended support is required.</p>
+        </div>
+
+        <!-- SECTION 5: LOADS & SERVICE ALLOCATIONS -->
+        <div class="section-panel">
+            <div class="panel-title">5. Loading & Services Allocations</div>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>Air Differential Pressure q<sub>air</sub> (Pa)</label>
+                    <input type="number" id="diffPressure" step="5" value="50">
+                </div>
+                <div class="input-group">
+                    <label>Walkover Live Load L<sub>L</sub> (kg/m²)</label>
+                    <input type="number" id="walkoverLoad" step="5" value="100.0">
+                </div>
+                <div class="input-group">
+                    <label>Services Load Allocation I<sub>2</sub> (kg/m²)</label>
+                    <input type="number" id="otherServices" step="0.5" value="10.0">
+                </div>
+                <div class="input-group">
+                    <label>Ducting & Cable Tray Load q<sub>mep</sub> (kg/m²)</label>
+                    <input type="number" id="mepLoad" step="0.5" value="8.5">
+                </div>
+                <div class="input-group">
+                    <label>Concentrated Equipment Load P<sub>eq</sub> (kg)</label>
+                    <input type="number" id="equipmentPoint" step="5" value="25.0">
+                </div>
+            </div>
+        </div>
+
+        <button class="action-btn" onclick="runCompleteAnalysis()">RUN FULL ANALYSIS & GENERATE RSA REPORT</button>
+    </div>
+
+    <!-- REPORT EXPORT PREVIEW -->
+    <div id="reportExportArea" class="pdf-preview">
+        <!-- PAGE 1: RSA REPORT MATRIX -->
+        <div id="rsaReportSheet">
+            <div class="report-header">
+                <h2>ROOM STRUCTURAL ANALYSIS (RSA) REPORT</h2>
+                <p>Comprehensive Cleanroom Structural & Dynamic Verification Report</p>
+                <div class="room-meta-banner">
+                    <div>ROOM ID: <span id="rptRoomId">RM-101</span></div>
+                    <div>DESC: <span id="rptRoomDesc">ISO Class 7 Cleanroom Buffer Area</span></div>
+                    <div>DIMENSIONS: <span id="rptRoomDims">6.00m x 4.00m x 3.50m (24.0 m²)</span></div>
+                </div>
+            </div>
+
+            <div id="overallBanner" class="overall-status-banner">ALL CHECKS ACCEPTABLE</div>
+
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 32%;">Analysis Parameter</th>
+                        <th style="width: 20%;">Calculated Demand</th>
+                        <th style="width: 28%;">Acceptance Criterion</th>
+                        <th style="width: 15%;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>1</td><td>Panel Bending Moment (M<sub>act</sub>)</td><td id="p1_val">-</td><td id="p1_lim">-</td><td id="p1_stat">-</td></tr>
+                    <tr><td>2</td><td>Facing Direct Bending Stress (σ<sub>f</sub>)</td><td id="p2_val">-</td><td id="p2_lim">-</td><td id="p2_stat">-</td></tr>
+                    <tr><td>3</td><td>Core Shear Stress (τ<sub>max</sub>)</td><td id="p3_val">-</td><td id="p3_lim">-</td><td id="p3_stat">-</td></tr>
+                    <tr><td>4</td><td>Facing Wrinkling Stress (σ<sub>w</sub>)</td><td id="p4_val">-</td><td id="p4_lim">-</td><td id="p4_stat">-</td></tr>
+                    <tr><td>5</td><td>Thermal Bowing Deflection (δ<sub>th</sub>)</td><td id="p5_val">-</td><td id="p5_lim">-</td><td id="p5_stat">-</td></tr>
+                    <tr><td>6</td><td>Pressure Elastic Deflection (δ<sub>pr</sub>)</td><td id="p6_val">-</td><td id="p6_lim">-</td><td id="p6_stat">-</td></tr>
+                    <tr><td>7</td><td>Total Combined Deflection (δ<sub>tot</sub>)</td><td id="p7_val">-</td><td id="p7_lim">-</td><td id="p7_stat">-</td></tr>
+                    <tr><td>8</td><td>Walkover Live Load Rating (L<sub>L</sub>)</td><td id="p8_val">-</td><td id="p8_lim">-</td><td id="p8_stat">-</td></tr>
+                    <tr><td>9</td><td>Total Overhead Ceiling Load (q<sub>tot</sub>)</td><td id="p9_val">-</td><td id="p9_lim">-</td><td id="p9_stat">-</td></tr>
+                    <tr><td>10</td><td>Ceiling Natural Frequency (f<sub>n</sub>)</td><td id="p10_val">-</td><td id="p10_lim">-</td><td id="p10_stat">-</td></tr>
+                    <tr><td>11</td><td>Mullion Post Axial Force (P<sub>ax</sub>)</td><td id="p11_val">-</td><td id="p11_lim">-</td><td id="p11_stat">-</td></tr>
+                    <tr><td>12</td><td>Mullion Post Buckling (P<sub>crit</sub>)</td><td id="p12_val">-</td><td id="p12_lim">-</td><td id="p12_stat">-</td></tr>
+                    <tr><td>13</td><td>Post Pressure Bending (M<sub>post</sub>)</td><td id="p13_val">-</td><td id="p13_lim">-</td><td id="p13_stat">-</td></tr>
+                    <tr><td>14</td><td>Post Interaction Ratio</td><td id="p14_val">-</td><td id="p14_lim">-</td><td id="p14_stat">-</td></tr>
+                    <tr><td>15</td><td>Base Fastener Shear (V<sub>act</sub>)</td><td id="p15_val">-</td><td id="p15_lim">-</td><td id="p15_stat">-</td></tr>
+                    <tr><td>16</td><td>Door Opening Lintel Moment</td><td id="p16_val">-</td><td id="p16_lim">-</td><td id="p16_stat">-</td></tr>
+                    <tr><td>17</td><td>Services Allocation Limit (I<sub>2</sub>)</td><td id="p17_val">-</td><td id="p17_lim">-</td><td id="p17_stat">-</td></tr>
+                    <tr><td>18</td><td>Truss Span &amp; Top Suspended Support</td><td id="p18_val">-</td><td id="p18_lim">-</td><td id="p18_stat">-</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGE 2: ATTACHMENT 1 - DIAGRAMS & RECOMMENDATIONS -->
+        <div class="page-break"></div>
+
+        <div id="diagramsNarrativeSheet">
+            <div class="report-header">
+                <h2>ATTACHMENT 1: DIAGRAMS & SYSTEM MECHANICS SHEET</h2>
+                <p>System Mechanics: Composite Action, Load Path & Structural Engineering Review</p>
+                <div class="room-meta-banner">
+                    <div>ROOM ID: <span id="rptRoomId2">RM-101</span></div>
+                    <div>DESC: <span id="rptRoomDesc2">ISO Class 7 Cleanroom Buffer Area</span></div>
+                </div>
+            </div>
+
+            <div class="diagrams-grid">
+                <!-- NEW DIAGRAM 1: ISOMETRIC ROOM BLOCK -->
+                <div class="diagram-box">
+                    <div class="diagram-title">Diagram 1: Room Block Isometric View</div>
+                    <div class="svg-container iso-container">
+                        <svg viewBox="0 0 500 140" width="500" height="140" xmlns="http://www.w3.org/2000/svg" xml:space="preserve">
+                            <!-- Left info column -->
+                            <text x="8" y="26" font-size="11" font-weight="bold" fill="#12384b" id="diagIsoShape">Rectangular Footprint</text>
+                            <text x="8" y="42" font-size="9.5" fill="#60717a">Net Area: <tspan id="diagIsoArea">24.0</tspan> m&#178;</text>
+                            <text x="8" y="58" font-size="9.5" fill="#60717a">Room ID: <tspan id="diagIsoRoomId">RM-101</tspan></text>
+
+                            <!-- Rectangular footprint isometric block -->
+                            <g id="isoRectBlock">
+                                <path d="M215,20 L260,42 L215,64 L170,42 Z" fill="#d6e0e3" stroke="#94a3b8" stroke-width="0.5"/>
+                                <path d="M260,42 L260,87 L215,109 L215,64 Z" fill="#0c8e87" stroke="#094f4a" stroke-width="0.5"/>
+                                <path d="M170,42 L215,64 L215,109 L170,87 Z" fill="#12384b" stroke="#04141a" stroke-width="0.5"/>
+                            </g>
+                            <!-- L-shaped footprint isometric block (notch cut from back corner) -->
+                            <g id="isoLBlock" style="display:none">
+                                <path d="M260,42 L233,28.8 L215,37.6 L197,28.8 L170,42 L215,64 Z" fill="#d6e0e3" stroke="#94a3b8" stroke-width="0.5"/>
+                                <path d="M260,42 L260,87 L215,109 L215,64 Z" fill="#0c8e87" stroke="#094f4a" stroke-width="0.5"/>
+                                <path d="M170,42 L215,64 L215,109 L170,87 Z" fill="#12384b" stroke="#04141a" stroke-width="0.5"/>
+                                <line x1="233" y1="28.8" x2="233" y2="38" stroke="#b84242" stroke-width="1" stroke-dasharray="2,2"/>
+                                <line x1="197" y1="28.8" x2="197" y2="38" stroke="#b84242" stroke-width="1" stroke-dasharray="2,2"/>
+                                <text x="215" y="14" font-size="8" font-weight="bold" fill="#b84242" text-anchor="middle">Notch L<tspan font-size="6" dy="2">n</tspan><tspan font-size="8" dy="-2"> &times; W</tspan><tspan font-size="6" dy="2">n</tspan></text>
+                            </g>
+
+                            <!-- Dimension leader lines + labels, offset clear of the block -->
+                            <line x1="237" y1="31" x2="270" y2="10" stroke="#94a3b8" stroke-width="0.75"/>
+                            <text x="273" y="12" font-size="9.5" font-weight="bold" fill="#12384b" text-anchor="start">L<tspan font-size="6.5" dy="2">r</tspan><tspan font-size="9.5" dy="-2"> = </tspan><tspan id="diagIsoL">6.00</tspan>m</text>
+
+                            <line x1="192" y1="31" x2="160" y2="10" stroke="#94a3b8" stroke-width="0.75"/>
+                            <text x="157" y="12" font-size="9.5" font-weight="bold" fill="#12384b" text-anchor="end">W<tspan font-size="6.5" dy="2">r</tspan><tspan font-size="9.5" dy="-2"> = </tspan><tspan id="diagIsoW">4.00</tspan>m</text>
+
+                            <text x="237" y="80" font-size="9" font-weight="bold" fill="#fff" text-anchor="middle">H<tspan font-size="6.5" dy="2">r</tspan><tspan font-size="9" dy="-2"> = </tspan><tspan id="diagIsoH">3.50</tspan>m</text>
+
+                            <!-- Right legend column -->
+                            <line x1="290" y1="66" x2="290" y2="120" stroke="#e2e8f0" stroke-width="1"/>
+                            <text x="305" y="66" font-size="10" fill="#0c8e87" font-weight="bold">Right face</text>
+                            <text x="305" y="79" font-size="9.5" fill="#60717a">&#8594; Length wall run (L<tspan font-size="7" dy="2">r</tspan><tspan font-size="9.5" dy="-2">)</tspan></text>
+                            <text x="305" y="98" font-size="10" fill="#12384b" font-weight="bold">Left face</text>
+                            <text x="305" y="111" font-size="9.5" fill="#60717a">&#8594; Width wall run (W<tspan font-size="7" dy="2">r</tspan><tspan font-size="9.5" dy="-2">)</tspan></text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- FIXED DIAGRAM 2: WALL FLEXURE & CORE SHEAR -->
+                <div class="diagram-box">
+                    <div class="diagram-title">Diagram 2: Wall Flexure, Core Shear & Thermal Bowing</div>
+                    <div class="svg-container">
+                        <svg viewBox="0 0 500 110" width="500" height="110" xmlns="http://www.w3.org/2000/svg" xml:space="preserve">
+                            <!-- Sandwich Panel Base Graphics -->
+                            <rect x="30" y="10" width="5" height="90" fill="#12384b" />
+                            <rect x="55" y="10" width="5" height="90" fill="#12384b" />
+                            <rect x="35" y="10" width="20" height="90" fill="#d6e0e3" stroke="#94a3b8" stroke-width="0.5" />
+                            
+                            <!-- Thermal Bow Curve -->
+                            <path d="M 60 10 Q 95 55 60 100" stroke="#dc2626" stroke-width="2" fill="none" stroke-dasharray="4,3"/>
+                            
+                            <!-- Annotations and Vectors -->
+                            <text x="110" y="30" font-size="11" font-weight="bold" fill="#12384b" dominant-baseline="middle">Outer Steel Skins (t<tspan font-size="8" dy="3">f</tspan><tspan font-size="11" dy="-3">): Bending &amp; Axial Tension/Compression</tspan></text>
+                            
+                            <text x="110" y="55" font-size="11" font-weight="bold" fill="#0c8e87" dominant-baseline="middle">Core Material (D<tspan font-size="8" dy="3">c</tspan><tspan font-size="11" dy="-3">): Shear Transmissibility (&#964;</tspan><tspan font-size="8" dy="3">max</tspan><tspan font-size="11" dy="-3">)</tspan></text>
+                            
+                            <text x="110" y="80" font-size="11" font-weight="bold" fill="#dc2626" dominant-baseline="middle">Thermal Bow Line (&#916;T = <tspan id="diag1DT">15</tspan>&#176;C Across Faces)</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- NEW DIAGRAM 3: PANEL FACING WRINKLING -->
+                <div class="diagram-box">
+                    <div class="diagram-title">Diagram 3: Panel Facing Wrinkling Mechanism</div>
+                    <div class="svg-container">
+                        <svg viewBox="0 0 500 110" width="500" height="110" xmlns="http://www.w3.org/2000/svg" xml:space="preserve">
+                            <!-- Core block -->
+                            <rect x="30" y="34" width="180" height="50" fill="#d6e0e3" stroke="#94a3b8" stroke-width="0.5"/>
+                            <!-- Bottom facing (unaffected) -->
+                            <rect x="30" y="84" width="180" height="4" fill="#12384b"/>
+                            <!-- Top facing showing local wrinkle buckling -->
+                            <path d="M30,34 Q45,20 60,34 Q75,48 90,34 Q105,20 120,34 Q135,48 150,34 Q165,20 180,34 Q195,48 210,34" stroke="#12384b" stroke-width="4" fill="none" stroke-linecap="round"/>
+                            <!-- Compression arrows squeezing the facing -->
+                            <path d="M14,32 L28,32 M24,28 L28,32 L24,36" stroke="#b84242" stroke-width="2" fill="none"/>
+                            <path d="M226,32 L212,32 M216,28 L212,32 L216,36" stroke="#b84242" stroke-width="2" fill="none"/>
+                            <text x="120" y="10" font-size="10" font-weight="bold" fill="#b84242" text-anchor="middle">Compressive Face Stress &#963;<tspan font-size="7" dy="2">f</tspan></text>
+                            <!-- Annotations -->
+                            <text x="240" y="28" font-size="11" font-weight="bold" fill="#12384b" dominant-baseline="middle">Facing Skin (t<tspan font-size="8" dy="3">f</tspan><tspan font-size="11" dy="-3">): Local Wrinkling / Dimpling Under Compression</tspan></text>
+                            <text x="240" y="52" font-size="11" font-weight="bold" fill="#0c8e87" dominant-baseline="middle">Core (D<tspan font-size="8" dy="3">c</tspan><tspan font-size="11" dy="-3">): Elastic Foundation Restraining Facing (E</tspan><tspan font-size="8" dy="3">c</tspan><tspan font-size="11" dy="-3">, G</tspan><tspan font-size="8" dy="3">c</tspan><tspan font-size="11" dy="-3">)</tspan></text>
+                            <text x="240" y="80" font-size="11" font-weight="bold" fill="#b84242" dominant-baseline="middle">&#963;<tspan font-size="8" dy="3">w</tspan><tspan font-size="11" dy="-3">(wrinkling) = </tspan><tspan id="diag3SigmaW">-</tspan><tspan font-size="11"> MPa vs. allow. </tspan><tspan id="diag3Allow">-</tspan><tspan font-size="11"> MPa</tspan></text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- FIXED DIAGRAM 4: ROOF TRUSS & POST BUCKLING -->
+                <div class="diagram-box">
+                    <div class="diagram-title">Diagram 4: Ceiling Load Path, Truss Spacing & Post Mechanics</div>
+                    <div class="svg-container">
+                        <svg viewBox="0 0 500 110" width="500" height="110" xmlns="http://www.w3.org/2000/svg" xml:space="preserve">
+                            <!-- Left and Right Supporting Columns -->
+                            <rect x="30" y="25" width="10" height="75" fill="#12384b" />
+                            <rect x="460" y="25" width="10" height="75" fill="#12384b" />
+
+                            <!-- Ceiling Truss: generated from actual room length / truss spacing input -->
+                            <g id="trussGroup"></g>
+
+                            <!-- Downward Overhead Load Vectors: generated alongside the truss -->
+                            <g id="trussLoadArrows"></g>
+                            
+                            <!-- Labels and Dimensions -->
+                            <text x="250" y="55" font-size="11" font-weight="bold" fill="#b84242" text-anchor="middle" dominant-baseline="middle">Total Ceiling Load (Walkover + Services: <tspan id="diag2I2">110</tspan> kg/m&#178;)</text>
+                            
+                            <text x="250" y="76" font-size="9.5" font-weight="bold" fill="#12384b" text-anchor="middle" dominant-baseline="middle">S<tspan font-size="7" dy="3">truss</tspan><tspan font-size="9.5" dy="-3"> = </tspan><tspan id="diag2Truss">3.00</tspan>m &times; <tspan id="diag2TrussCount">2</tspan> bays over <tspan id="diag2RoomLength">6.00</tspan>m run (span <tspan id="diag2SpanDim">4.00</tspan>m)</text>
+                            <text x="250" y="95" font-size="9.5" font-weight="bold" fill="#b84242" text-anchor="middle" dominant-baseline="middle" id="diag2SupportNote"></text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DYNAMIC RECOMMENDATIONS BLOCK -->
+            <div id="recommendationsBox" class="recommendations-box">
+                <strong>ENGINEERING REVISION RECOMMENDATIONS:</strong>
+                <ul id="recommendationsList" style="margin: 4px 0 0 16px; padding: 0;"></ul>
+            </div>
+
+            <div class="narrative-box">
+                <strong>COMPREHENSIVE MECHANICAL EVALUATION NARRATIVE:</strong><br>
+                The sandwich panel composite system and structural support frame have been evaluated against combined axial, flexural, shear, dynamic, walkover live loading, and thermal loads. The structural model assumes full composite action between outer facing skins (t<sub>f</sub>) and core material (D<sub>c</sub>) suspended across ceiling truss modules.
+            </div>
+        </div>
+
+        <!-- PAGE 3: ATTACHMENT 2 - FORMULAS REFERENCE SHEET -->
+        <div class="page-break"></div>
+
+        <div id="formulaReferenceSheet">
+            <div class="report-header">
+                <h2>ATTACHMENT 2: STRUCTURAL FORMULA & EQUATIONS GUIDE</h2>
+                <p>Governing Equations, Mechanics Formulations & Verification Standards</p>
+                <div class="room-meta-banner">
+                    <div>ROOM ID: <span id="rptRoomId3">RM-101</span></div>
+                    <div>METHODOLOGY: EN 14509 / Eurocode 3 / Roark's Formulas</div>
+                </div>
+            </div>
+
+            <table class="formula-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 26%;">Parameter</th>
+                        <th style="width: 41%;">Governing Formula & Units</th>
+                        <th style="width: 28%;">Acceptance Criterion Format</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>1</td><td>Panel Bending Moment</td><td class="formula-code">M<sub>act</sub> = (q<sub>air</sub> · L²) / 8</td><td>&lt;= M<sub>rd</sub> (Section Capacity)</td></tr>
+                    <tr><td>2</td><td>Facing Bending Stress</td><td class="formula-code">σ<sub>f</sub> = M<sub>act</sub> / (t<sub>f</sub> · D<sub>c</sub>)</td><td>&lt;= 224.00 MPa (Yield SF=1.25)</td></tr>
+                    <tr><td>3</td><td>Core Shear Stress</td><td class="formula-code">τ<sub>max</sub> = (q<sub>air</sub> · L) / (2 · D<sub>c</sub>)</td><td>&lt;= 0.080 MPa (Material Limit)</td></tr>
+                    <tr><td>4</td><td>Facing Wrinkling Stress</td><td class="formula-code">σ<sub>w</sub> = 0.5 · (E<sub>s</sub> · E<sub>c</sub> · G<sub>c</sub>)<sup>1/3</sup></td><td>&lt;= σ<sub>w</sub> / 1.25 (Wrinkling)</td></tr>
+                    <tr><td>5</td><td>Thermal Bowing Deflection</td><td class="formula-code">δ<sub>th</sub> = (α · ΔT · L²) / (8 · D<sub>c</sub>)</td><td>&lt;= L / 300 (Thermal Bow)</td></tr>
+                    <tr><td>6</td><td>Pressure Elastic Deflection</td><td class="formula-code">δ<sub>pr</sub> = (5 · q · L⁴) / (384 · B<sub>panel</sub>)</td><td>&lt;= L / 240 (Flexural Deflection)</td></tr>
+                    <tr><td>7</td><td>Total Combined Deflection</td><td class="formula-code">δ<sub>tot</sub> = δ<sub>pr</sub> + δ<sub>th</sub></td><td>&lt;= L / 200 (Total Serviceability)</td></tr>
+                    <tr><td>8</td><td>Walkover Live Load</td><td class="formula-code">L<sub>L</sub> (Declared Input)</td><td>&gt;= 100.0 kg/m² Specified</td></tr>
+                    <tr><td>9</td><td>Total Overhead Ceiling Load</td><td class="formula-code">q<sub>tot</sub> = q<sub>panels</sub> + q<sub>mep</sub> + I<sub>2</sub> + L<sub>L</sub></td><td>&lt;= 150.0 kg/m² Allowable</td></tr>
+                    <tr><td>10</td><td>Ceiling Natural Frequency</td><td class="formula-code">f<sub>n</sub> = (π / 2) · √(EI / (m · S<sub>truss</sub>⁴))</td><td>&gt;= 8.0 Hz (Resonance Limit)</td></tr>
+                    <tr><td>11</td><td>Mullion Post Axial Load</td><td class="formula-code">P<sub>ax</sub> = q<sub>tot</sub> · S<sub>post</sub> · (S<sub>truss</sub> / 2) + P<sub>eq</sub></td><td>&lt;= 450.0 kg (Cap Limit)</td></tr>
+                    <tr><td>12</td><td>Post Euler Buckling Capacity</td><td class="formula-code">P<sub>crit</sub> = (π² · E · I<sub>x</sub>) / (1.5 · L²)</td><td>&lt;= P<sub>crit</sub> / 1.5 (Euler Pcr)</td></tr>
+                    <tr><td>13</td><td>Post Bending Moment</td><td class="formula-code">M<sub>post</sub> = (q<sub>air</sub> · S<sub>post</sub> · L²) / 8</td><td>&lt;= M<sub>rd</sub> (Post Yield)</td></tr>
+                    <tr><td>14</td><td>Stress Interaction Ratio</td><td class="formula-code">IR = (σ<sub>axial</sub> / f<sub>allow</sub>) + (σ<sub>bending</sub> / f<sub>allow</sub>)</td><td>&lt;= 100.0 % (Interaction)</td></tr>
+                    <tr><td>15</td><td>Fastener Base Shear</td><td class="formula-code">V<sub>act</sub> = (q<sub>air</sub> · S<sub>post</sub> · L) / 2</td><td>&lt;= V<sub>rd</sub> per anchor</td></tr>
+                    <tr><td>16</td><td>Lintel Opening Moment</td><td class="formula-code">M<sub>lintel</sub> = (q<sub>tot</sub> · g · L<sub>door</sub>³) / 8</td><td>&lt;= 1.200 kNm (Header)</td></tr>
+                    <tr><td>17</td><td>Services Allocation Limit</td><td class="formula-code">I<sub>2</sub> (Declared Input)</td><td>&lt;= 25.0 kg/m² Allocation</td></tr>
+                    <tr><td>18</td><td>Truss Span / Support Rule</td><td class="formula-code">Span = shorter of (L<sub>r</sub>, W<sub>r</sub>); bays = max(2, round(longer side / S<sub>truss</sub>))</td><td>&lt; 12.0m no support required; &gt;= 12.0m requires top suspended support</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <button id="pdfExportBtn" class="action-btn" style="display:none; background-color:#16a34a; margin-top:20px;" onclick="exportToPDF()">EXPORT COMPLETE 3-PAGE PDF REPORT</button>
+</main>
+
+<script>
+    const STORAGE_KEY = "rsaEngineDraft";
+    const BLANK_STATE = {
+        roomId: "RM-000", roomDesc: "New Room", roomShape: "Rectangular",
+        roomLength: "6.00", roomWidth: "4.00", roomHeight: "3.50",
+        notchLength: "2.00", notchWidth: "1.50",
+        panelWidth: "1.18", coreThickness: "50", facingThickness: "0.60",
+        facingModulus: "210", facingYield: "280", coreCompModulus: "4.0",
+        coreShearModulus: "2.5", coreShearStrength: "0.08",
+        tempIn: "20", tempOut: "35", coeffAlpha: "0.000012", targetFreq: "8.0",
+        postSpacing: "2.40", trussSpacing: "3.00", trussDirection: "auto", topSuspendedSupport: "no", postInertia: "125",
+        postModulus: "22", fastenerShear: "2.2",
+        diffPressure: "50", walkoverLoad: "100.0", otherServices: "10.0",
+        mepLoad: "8.5", equipmentPoint: "25.0"
+    };
+
+    function updateRoomShapeUI() {
+        const isLShaped = document.getElementById("roomShape").value === "L-Shaped";
+        document.querySelectorAll(".notch-field").forEach(el => { el.hidden = !isLShaped; });
+        document.getElementById("notchHint").hidden = !isLShaped;
+        document.getElementById("isoRectBlock").style.display = isLShaped ? "none" : "";
+        document.getElementById("isoLBlock").style.display = isLShaped ? "" : "none";
+    }
+
+    function renderTruss(bays) {
+        const xStart = 40, xEnd = 460, yTop = 25, yBottom = 45;
+        const n = Math.min(24, Math.max(1, Math.round(bays))); // rendering cap only - reported bay count is unaffected
+        const nodes = [];
+        for (let i = 0; i <= n; i++) nodes.push(xStart + (xEnd - xStart) * (i / n));
+
+        let svg = "";
+        svg += `<polyline points="${nodes.map(x => `${x.toFixed(1)},${yTop}`).join(" ")}" stroke="#0c8e87" stroke-width="4" fill="none" stroke-linejoin="round"/>`;
+        svg += `<polyline points="${nodes.map(x => `${x.toFixed(1)},${yBottom}`).join(" ")}" stroke="#0c8e87" stroke-width="4" fill="none" stroke-linejoin="round"/>`;
+        nodes.forEach(x => { svg += `<line x1="${x.toFixed(1)}" y1="${yTop}" x2="${x.toFixed(1)}" y2="${yBottom}" stroke="#0c8e87" stroke-width="2.5"/>`; });
+        for (let i = 0; i < n; i++) {
+            svg += `<line x1="${nodes[i].toFixed(1)}" y1="${yBottom}" x2="${nodes[i + 1].toFixed(1)}" y2="${yTop}" stroke="#12384b" stroke-width="2"/>`;
+        }
+        document.getElementById("trussGroup").innerHTML = svg;
+
+        // Load arrows: representative points at ~25%, 50%, 75% along the truss, snapped to the nearest node
+        let arrows = "";
+        [0.25, 0.5, 0.75].forEach(frac => {
+            const idx = Math.min(n, Math.max(0, Math.round(n * frac)));
+            const x = nodes[idx];
+            arrows += `<path d="M ${x.toFixed(1)} 5 L ${x.toFixed(1)} 20 M ${(x - 4).toFixed(1)} 16 L ${x.toFixed(1)} 20 L ${(x + 4).toFixed(1)} 16" stroke="#b84242" stroke-width="2" fill="none"/>`;
+        });
+        document.getElementById("trussLoadArrows").innerHTML = arrows;
+    }
+
+    function collectState() {
+        const state = {};
+        document.querySelectorAll("#inputForm input[id], #inputForm select[id]").forEach(el => { state[el.id] = el.value; });
+        return state;
+    }
+    function applyState(state) {
+        document.querySelectorAll("#inputForm input[id], #inputForm select[id]").forEach(el => {
+            if (Object.prototype.hasOwnProperty.call(state, el.id)) el.value = state[el.id];
+        });
+        updateRoomShapeUI();
+    }
+    function saveDraft() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState())); } catch (e) { /* storage unavailable */ }
+    }
+    function resetReportView() {
+        document.getElementById("reportExportArea").classList.remove("active");
+        document.getElementById("pdfExportBtn").style.display = "none";
+        const overallBanner = document.getElementById("overallBanner");
+        overallBanner.style.display = "none";
+        document.getElementById("recommendationsBox").style.display = "none";
+    }
+
+    function newProject() {
+        if (confirm("Start a new blank project?\n\nThis clears the current room inputs from this browser. If you want to keep them, click Cancel and use \u201cExport data\u201d first, then reload them later with \u201cImport data\u201d.\n\nContinue and clear now?")) {
+            applyState(BLANK_STATE);
+            saveDraft();
+            resetReportView();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+    }
+
+    function exportData() {
+        const blob = new Blob([JSON.stringify(collectState(), null, 2)], { type: "application/json" });
+        const roomId = document.getElementById("roomId").value || "room";
+        const link = Object.assign(document.createElement("a"), {
+            href: URL.createObjectURL(blob),
+            download: "rsa-engine-" + roomId.toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".json"
+        });
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+
+    function importData(file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const data = JSON.parse(reader.result);
+                if (!data || typeof data !== "object" || !("roomLength" in data) || !("coreThickness" in data)) {
+                    alert("This file is not a valid RSA Structural Engine data export.");
+                    return;
+                }
+                applyState(data);
+                saveDraft();
+                resetReportView();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            } catch (e) {
+                alert("This file is not a valid RSA Structural Engine data export.");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    const HERO_KEY = "rsaHeroCollapsed";
+    function setHeroCollapsed(collapsed) {
+        const hero = document.getElementById("hero");
+        const btn = document.getElementById("heroToggle");
+        hero.classList.toggle("collapsed", collapsed);
+        btn.setAttribute("aria-expanded", String(!collapsed));
+        btn.querySelector(".hero-toggle-label").textContent = collapsed ? "Expand" : "Collapse";
+        try { localStorage.setItem(HERO_KEY, collapsed ? "1" : "0"); } catch (e) { /* storage unavailable */ }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        try {
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+            if (saved) applyState(saved);
+        } catch (e) { /* ignore corrupt draft */ }
+        updateRoomShapeUI();
+        renderTruss(2);
+        let heroCollapsed = true;
+        try { const stored = localStorage.getItem(HERO_KEY); if (stored !== null) heroCollapsed = stored === "1"; } catch (e) { /* default to collapsed */ }
+        setHeroCollapsed(heroCollapsed);
+        document.getElementById("heroToggle").addEventListener("click", () => {
+            setHeroCollapsed(!document.getElementById("hero").classList.contains("collapsed"));
+        });
+        document.getElementById("inputForm").addEventListener("input", saveDraft);
+        document.getElementById("roomShape").addEventListener("change", () => { updateRoomShapeUI(); saveDraft(); });
+        document.getElementById("importFile").addEventListener("change", e => {
+            if (e.target.files && e.target.files[0]) { importData(e.target.files[0]); e.target.value = ""; }
+        });
+    });
+
+    function runCompleteAnalysis() {
+        // Read Room Metadata
+        const roomId = document.getElementById('roomId').value || "RM-101";
+        const roomDesc = document.getElementById('roomDesc').value || "Cleanroom Area";
+
+        // Read Room Geometry
+        const L_r = parseFloat(document.getElementById('roomLength').value);
+        const W_r = parseFloat(document.getElementById('roomWidth').value);
+        const H_r = parseFloat(document.getElementById('roomHeight').value);
+        const B = parseFloat(document.getElementById('panelWidth').value);
+        const D_c = parseFloat(document.getElementById('coreThickness').value); // mm
+        const t_f = parseFloat(document.getElementById('facingThickness').value); // mm
+
+        // Read Material Properties
+        const E_s = parseFloat(document.getElementById('facingModulus').value) * 1000; // MPa
+        const f_y = parseFloat(document.getElementById('facingYield').value); // MPa
+        const E_c = parseFloat(document.getElementById('coreCompModulus').value); // MPa
+        const G_c = parseFloat(document.getElementById('coreShearModulus').value); // MPa
+        const f_vk = parseFloat(document.getElementById('coreShearStrength').value); // MPa
+
+        // Thermal & Dynamic
+        const T_in = parseFloat(document.getElementById('tempIn').value);
+        const T_out = parseFloat(document.getElementById('tempOut').value);
+        const alpha = parseFloat(document.getElementById('coeffAlpha').value);
+        const f_min = parseFloat(document.getElementById('targetFreq').value);
+
+        // Post, Truss & Fasteners
+        const S_post = parseFloat(document.getElementById('postSpacing').value); // m
+        const S_truss = parseFloat(document.getElementById('trussSpacing').value); // m
+        const I_x = parseFloat(document.getElementById('postInertia').value); // cm4
+        const Z_x = parseFloat(document.getElementById('postModulus').value); // cm3
+        const V_rd = parseFloat(document.getElementById('fastenerShear').value); // kN
+
+        // Services, Pressure & Walkover Live Load
+        const q_air = parseFloat(document.getElementById('diffPressure').value); // Pa (N/m2)
+        const L_L = parseFloat(document.getElementById('walkoverLoad').value); // kg/m2
+        const I2 = parseFloat(document.getElementById('otherServices').value); // kg/m2
+        const q_mep = parseFloat(document.getElementById('mepLoad').value); // kg/m2
+        const P_eq = parseFloat(document.getElementById('equipmentPoint').value); // kg
+
+        // Room Shape
+        const roomShape = document.getElementById('roomShape').value;
+        const notchLength = parseFloat(document.getElementById('notchLength').value) || 0;
+        const notchWidth = parseFloat(document.getElementById('notchWidth').value) || 0;
+        const isLShaped = roomShape === 'L-Shaped';
+
+        // Banners
+        const grossArea = L_r * W_r;
+        const roomArea = isLShaped ? Math.max(0, grossArea - (notchLength * notchWidth)) : grossArea;
+        document.getElementById('rptRoomId').innerText = roomId;
+        document.getElementById('rptRoomId2').innerText = roomId;
+        document.getElementById('rptRoomId3').innerText = roomId;
+        document.getElementById('rptRoomDesc').innerText = roomDesc;
+        document.getElementById('rptRoomDesc2').innerText = roomDesc;
+        document.getElementById('rptRoomDims').innerText = isLShaped
+            ? `${L_r.toFixed(2)}m x ${W_r.toFixed(2)}m x ${H_r.toFixed(2)}m, L-Shaped, notch ${notchLength.toFixed(2)}m x ${notchWidth.toFixed(2)}m (${roomArea.toFixed(1)} m² net)`
+            : `${L_r.toFixed(2)}m x ${W_r.toFixed(2)}m x ${H_r.toFixed(2)}m (${roomArea.toFixed(1)} m²)`;
+
+        // Isometric room-block diagram
+        document.getElementById('diagIsoL').innerText = L_r.toFixed(2);
+        document.getElementById('diagIsoW').innerText = W_r.toFixed(2);
+        document.getElementById('diagIsoH').innerText = H_r.toFixed(2);
+        document.getElementById('diagIsoArea').innerText = roomArea.toFixed(1);
+        document.getElementById('diagIsoRoomId').innerText = roomId;
+        document.getElementById('diagIsoShape').innerText = isLShaped ? 'L-Shaped Footprint' : 'Rectangular Footprint';
+        updateRoomShapeUI();
+
+        const L = H_r; // Wall panel height span (m)
+        const recommendations = [];
+        let allChecksAcceptable = true;
+
+        // CALCULATIONS & ACCEPTANCE CRITERIA
+        const M_act = (q_air * Math.pow(L, 2)) / (8 * 1000); 
+        const M_rd = (f_y * t_f * D_c) / 1000;
+        const p1_pass = M_act <= M_rd;
+        setParamRow('p1', M_act.toFixed(4) + " kNm/m", "<= " + M_rd.toFixed(3) + " kNm/m (Capacity)", p1_pass);
+        if (!p1_pass) { recommendations.push("Panel bending moment demand exceeds capacity. Increase facing thickness (t_f) or core thickness (D_c)."); allChecksAcceptable = false; }
+
+        const sigma_f = (M_act * 1000 * 1000) / (t_f * D_c * 1000); 
+        const sigma_f_allow = f_y / 1.25; 
+        const p2_pass = sigma_f <= sigma_f_allow;
+        setParamRow('p2', sigma_f.toFixed(2) + " MPa", "<= " + sigma_f_allow.toFixed(2) + " MPa (Yield Limit)", p2_pass);
+        if (!p2_pass) { recommendations.push("Facing stress exceeds allowable yield limit. Upgrade facing steel yield strength (f_y) or thickness (t_f)."); allChecksAcceptable = false; }
+
+        const V_max = (q_air * L) / 2; 
+        const tau_max = V_max / (D_c * 1000); 
+        const p3_pass = tau_max <= f_vk;
+        setParamRow('p3', tau_max.toFixed(4) + " MPa", "<= " + f_vk.toFixed(2) + " MPa (Material Limit)", p3_pass);
+        if (!p3_pass) { recommendations.push("Core shear stress exceeds material shear strength. Increase core thickness (D_c) or use higher density core."); allChecksAcceptable = false; }
+
+        const sigma_w = 0.5 * Math.pow(E_s * E_c * G_c, 1/3); 
+        const sigma_w_allow = sigma_w / 1.25;
+        const p4_pass = sigma_f <= sigma_w_allow;
+        setParamRow('p4', sigma_f.toFixed(2) + " MPa", "<= " + sigma_w_allow.toFixed(2) + " MPa (Wrinkling)", p4_pass);
+        if (!p4_pass) { recommendations.push("Risk of facing wrinkling under pressure load. Increase core compressive or shear modulus."); allChecksAcceptable = false; }
+        document.getElementById('diag3SigmaW').innerText = sigma_f.toFixed(2);
+        document.getElementById('diag3Allow').innerText = sigma_w_allow.toFixed(2);
+        document.getElementById('diag3SigmaW').parentNode.style.fill = p4_pass ? '#287552' : '#b84242';
+
+        const deltaT = Math.abs(T_out - T_in);
+        const delta_th = (alpha * deltaT * Math.pow(L * 1000, 2)) / (8 * D_c); 
+        const delta_th_limit = (L * 1000) / 300; 
+        const p5_pass = delta_th <= delta_th_limit;
+        setParamRow('p5', delta_th.toFixed(2) + " mm", "<= " + delta_th_limit.toFixed(2) + " mm (L/300)", p5_pass);
+        if (!p5_pass) { recommendations.push("Thermal bowing deflection exceeds L/300. Reduce temperature differential or increase panel thickness (D_c)."); allChecksAcceptable = false; }
+
+        const B_panel = (E_s * t_f * Math.pow(D_c, 2)) / 2; 
+        const q_mm = q_air / 1000000; 
+        const delta_pr = (5 * q_mm * Math.pow(L * 1000, 4)) / (384 * B_panel); 
+        const delta_pr_limit = (L * 1000) / 240; 
+        const p6_pass = delta_pr <= delta_pr_limit;
+        setParamRow('p6', delta_pr.toFixed(2) + " mm", "<= " + delta_pr_limit.toFixed(2) + " mm (L/240)", p6_pass);
+        if (!p6_pass) { recommendations.push("Pressure deflection exceeds L/240 limit. Reduce differential pressure or increase panel section rigidity."); allChecksAcceptable = false; }
+
+        const delta_tot = delta_pr + delta_th;
+        const delta_tot_limit = (L * 1000) / 200; 
+        const p7_pass = delta_tot <= delta_tot_limit;
+        setParamRow('p7', delta_tot.toFixed(2) + " mm", "<= " + delta_tot_limit.toFixed(2) + " mm (L/200)", p7_pass);
+        if (!p7_pass) { recommendations.push("Total combined deflection exceeds serviceability limit L/200."); allChecksAcceptable = false; }
+
+        const L_L_limit = 100.0; 
+        const p8_pass = L_L >= L_L_limit;
+        setParamRow('p8', L_L.toFixed(1) + " kg/m²", ">= " + L_L_limit.toFixed(1) + " kg/m² Specified", p8_pass);
+        if (!p8_pass) { recommendations.push("Walkover live load capacity is below standard 100 kg/m² requirement."); allChecksAcceptable = false; }
+
+        const q_panels = 11.5; 
+        const q_tot = q_panels + q_mep + I2 + L_L; 
+        const q_tot_limit = 150.0; 
+        const p9_pass = q_tot <= q_tot_limit;
+        setParamRow('p9', q_tot.toFixed(1) + " kg/m²", "<= " + q_tot_limit.toFixed(1) + " kg/m² Specified", p9_pass);
+        if (!p9_pass) { recommendations.push("Total overhead loading exceeds allowable ceiling load capacity. Reduce secondary service weight or increase truss support capacity."); allChecksAcceptable = false; }
+
+        const EI_ceil_SI = B_panel / 1000; 
+        const mass_kg = q_tot; 
+        const f_n = (Math.PI / 2) * Math.sqrt(EI_ceil_SI / (mass_kg * Math.pow(S_truss, 4)));
+        const p10_pass = f_n >= f_min;
+        setParamRow('p10', f_n.toFixed(1) + " Hz", ">= " + f_min.toFixed(1) + " Hz (Resonance Limit)", p10_pass);
+        if (!p10_pass) { recommendations.push("Ceiling natural frequency (" + f_n.toFixed(1) + " Hz) is below target " + f_min.toFixed(1) + " Hz. Reduce truss spacing (S_truss) or increase panel rigidity."); allChecksAcceptable = false; }
+
+        const P_ax = (q_tot * (S_post * (S_truss / 2))) + P_eq;
+        const P_ax_limit = 450.0; 
+        const p11_pass = P_ax <= P_ax_limit;
+        setParamRow('p11', P_ax.toFixed(1) + " kg", "<= " + P_ax_limit.toFixed(1) + " kg Specified", p11_pass);
+        if (!p11_pass) { recommendations.push("Mullion post axial load is high. Reduce post spacing (S_post) or truss spacing (S_truss) to distribute load."); allChecksAcceptable = false; }
+
+        const E_alum = 70000; 
+        const I_x_mm4 = I_x * 10000; 
+        const P_crit_N = (Math.pow(Math.PI, 2) * E_alum * I_x_mm4) / Math.pow(L * 1000, 2);
+        const P_crit_kg = P_crit_N / 9.81;
+        const P_allow_kg = P_crit_kg / 1.5; 
+        const p12_pass = P_ax <= P_allow_kg;
+        setParamRow('p12', P_ax.toFixed(1) + " kg", "<= " + P_allow_kg.toFixed(2) + " kg (Euler Pcr)", p12_pass);
+        if (!p12_pass) { recommendations.push("Mullion post buckling risk detected. Increase post moment of inertia (I_x) or reduce post height (H_r)."); allChecksAcceptable = false; }
+
+        const M_post = (q_air * S_post * Math.pow(L, 2)) / (8 * 1000); 
+        const M_post_rd = (240 * Z_x * 1000) / 1000000; 
+        const p13_pass = M_post <= M_post_rd;
+        setParamRow('p13', M_post.toFixed(4) + " kNm", "<= " + M_post_rd.toFixed(3) + " kNm Yield", p13_pass);
+        if (!p13_pass) { recommendations.push("Mullion bending moment under pressure exceeds capacity. Upgrade aluminum post section modulus (Z_x)."); allChecksAcceptable = false; }
+
+        const post_axial_stress = (P_ax * 9.81) / (Z_x * 10); 
+        const post_bending_stress = (M_post * 1000 * 1000) / (Z_x * 1000); 
+        const interaction_pct = ((post_axial_stress / 160) + (post_bending_stress / 160)) * 100;
+        const p14_pass = interaction_pct <= 100.0;
+        setParamRow('p14', interaction_pct.toFixed(1) + " %", "<= 100.0 % Interaction", p14_pass);
+        if (!p14_pass) { recommendations.push("Combined axial and pressure bending interaction ratio exceeds 100%. Upgrade post profile section."); allChecksAcceptable = false; }
+
+        const V_act = (q_air * S_post * L) / (2 * 1000); 
+        const p15_pass = V_act <= V_rd;
+        setParamRow('p15', V_act.toFixed(3) + " kN", "<= " + V_rd.toFixed(2) + " kN per anchor", p15_pass);
+        if (!p15_pass) { recommendations.push("Base track fastener shear demand from pressure exceeds capacity. Decrease fastener spacing or upgrade anchor diameter."); allChecksAcceptable = false; }
+
+        const door_width = 1.2; 
+        const M_lintel = (q_tot * 9.81 / 1000 * door_width * Math.pow(door_width, 2)) / 8; 
+        const M_lintel_rd = 1.20; 
+        const p16_pass = M_lintel <= M_lintel_rd;
+        setParamRow('p16', M_lintel.toFixed(3) + " kNm", "<= " + M_lintel_rd.toFixed(3) + " kNm Header", p16_pass);
+        if (!p16_pass) { recommendations.push("Door opening lintel moment exceeds allowable threshold. Install reinforced aluminum lintel header."); allChecksAcceptable = false; }
+
+        const I2_limit = 25.0; 
+        const p17_pass = I2 <= I2_limit;
+        setParamRow('p17', I2.toFixed(1) + " kg/m²", "<= " + I2_limit.toFixed(1) + " kg/m² Specified", p17_pass);
+        if (!p17_pass) { recommendations.push("Input I2 service allocation exceeds upper maximum threshold of 25.0 kg/m²."); allChecksAcceptable = false; }
+
+        // Truss span direction: trusses span the room's shorter side and repeat along the longer side.
+        // Square rooms are ambiguous under "auto" - the user must set Truss Span Direction explicitly.
+        const trussDirection = document.getElementById('trussDirection').value;
+        const topSupportProvided = document.getElementById('topSuspendedSupport').value === 'yes';
+        const isSquareRoom = Math.abs(L_r - W_r) < 0.005;
+        let trussSpanDim, trussRepeatDim, trussDirectionAmbiguous = false;
+        if (trussDirection === 'length') { trussSpanDim = L_r; trussRepeatDim = W_r; }
+        else if (trussDirection === 'width') { trussSpanDim = W_r; trussRepeatDim = L_r; }
+        else {
+            if (isSquareRoom) { trussSpanDim = L_r; trussRepeatDim = W_r; trussDirectionAmbiguous = true; }
+            else if (W_r < L_r) { trussSpanDim = W_r; trussRepeatDim = L_r; }
+            else { trussSpanDim = L_r; trussRepeatDim = W_r; }
+        }
+        const trussBays = Math.max(2, Math.round(trussRepeatDim / Math.max(0.1, S_truss)));
+        const supportRequired = trussSpanDim >= 12.0;
+        const p18_pass = !supportRequired || topSupportProvided;
+        setParamRow('p18',
+            trussSpanDim.toFixed(2) + "m span, " + trussBays + " truss" + (trussBays === 1 ? "" : "es"),
+            supportRequired ? "&gt;= 12.0m &mdash; top suspended support required" : "&lt; 12.0m &mdash; no top suspended support required",
+            p18_pass);
+        if (!p18_pass) { recommendations.push("Truss span is " + trussSpanDim.toFixed(2) + "m (\u2265 12.0m) but top suspended support is not marked as provided. Add top suspended support or confirm it in the input register."); allChecksAcceptable = false; }
+        if (trussDirectionAmbiguous) { recommendations.push("Room is square (L_r = W_r): truss span direction was defaulted to Length. Set Truss Span Direction explicitly to confirm the intended layout."); }
+
+        // Dynamic Updates to Banners & Captions
+        document.getElementById('diag1DT').innerText = deltaT.toFixed(0);
+        document.getElementById('diag2I2').innerText = (L_L + I2).toFixed(0);
+        document.getElementById('diag2Truss').innerText = S_truss.toFixed(2);
+        document.getElementById('diag2RoomLength').innerText = trussRepeatDim.toFixed(2);
+        document.getElementById('diag2TrussCount').innerText = trussBays;
+        document.getElementById('diag2SpanDim').innerText = trussSpanDim.toFixed(2);
+        const supportNote = document.getElementById('diag2SupportNote');
+        if (supportRequired && !topSupportProvided) {
+            supportNote.innerText = '\u26A0 Span \u2265 12.0m \u2014 top suspended support required';
+            supportNote.style.fill = '#b84242';
+        } else if (supportRequired && topSupportProvided) {
+            supportNote.innerText = '\u2713 Top suspended support provided for ' + trussSpanDim.toFixed(2) + 'm span';
+            supportNote.style.fill = '#287552';
+        } else {
+            supportNote.innerText = 'Span < 12.0m \u2014 no top suspended support required';
+            supportNote.style.fill = '#60717a';
+        }
+        renderTruss(trussBays);
+
+        // Overall Banner Visibility
+        const overallBanner = document.getElementById('overallBanner');
+        if (allChecksAcceptable) {
+            overallBanner.style.display = 'block';
+            overallBanner.innerText = 'ALL CHECKS ACCEPTABLE';
+            overallBanner.style.background = '#dcfce7';
+            overallBanner.style.color = '#15803d';
+            overallBanner.style.borderColor = '#86efac';
+        } else {
+            overallBanner.style.display = 'block';
+            overallBanner.innerText = 'REVISION REQUIRED - SEE ATTACHMENT 1 RECOMMENDATIONS';
+            overallBanner.style.background = '#fee2e2';
+            overallBanner.style.color = '#991b1b';
+            overallBanner.style.borderColor = '#fca5a5';
+        }
+
+        // Recommendations List Box Visibility
+        const boxEl = document.getElementById('recommendationsBox');
+        const listEl = document.getElementById('recommendationsList');
+        listEl.innerHTML = "";
+
+        if (recommendations.length === 0) {
+            boxEl.style.display = 'none';
+        } else {
+            boxEl.style.display = 'block';
+            recommendations.forEach(rec => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>REVISE:</strong> ${rec}`;
+                listEl.appendChild(li);
+            });
+        }
+
+        // Display Export Preview & Button
+        document.getElementById('reportExportArea').classList.add('active');
+        document.getElementById('pdfExportBtn').style.display = 'block';
+    }
+
+    function setParamRow(prefix, valStr, limitStr, isPass) {
+        document.getElementById(prefix + '_val').innerText = valStr;
+        document.getElementById(prefix + '_lim').innerText = limitStr;
+        const statEl = document.getElementById(prefix + '_stat');
+        if (isPass) {
+            statEl.innerHTML = '<span class="status-badge pass">ACCEPTABLE</span>';
+        } else {
+            statEl.innerHTML = '<span class="status-badge fail">REVISE</span>';
+        }
+    }
+
+    function exportToPDF() {
+        const element = document.getElementById('reportExportArea');
+        const opt = {
+            margin:       [0.2, 0.2, 0.2, 0.2],
+            filename:     'RSA_Full_Report_With_Attachments.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save();
+    }
+</script>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch((err) => {
+                console.warn('Service worker registration failed:', err);
+            });
+        });
+    }
+</script>
+</body>
+</html>
