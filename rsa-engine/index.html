@@ -550,6 +550,10 @@
                     <input type="number" id="postModulus" step="1" value="22">
                 </div>
                 <div class="input-group">
+                    <label>Post Cross-Section Area A<sub>x</sub> (cm&sup2;)</label>
+                    <input type="number" id="postArea" step="0.1" value="8.5">
+                </div>
+                <div class="input-group">
                     <label>Fastener Shear Capacity V<sub>rd</sub> (kN)</label>
                     <input type="number" id="fastenerShear" step="0.1" value="2.2">
                 </div>
@@ -562,7 +566,7 @@
                     <input type="number" id="topAnchorSpacing" step="0.1" value="1.20">
                 </div>
             </div>
-            <p class="hint">Trusses span the room's shorter side and repeat at S<sub>truss</sub> centres along the longer side, with a minimum of 2 trusses regardless of spacing. For a square room (L<sub>r</sub> = W<sub>r</sub>) the automatic rule is ambiguous &mdash; set Truss Span Direction explicitly. Truss spans of 12.0m or more require top suspended support (Check 18); below 12.0m no top suspended support is required. Base Anchor Spacing s<sub>a</sub> is the centre-to-centre spacing of anchors along the base track on a straight run &mdash; typically 4&ndash;5m, independent of Post Spacing S<sub>post</sub> &mdash; and sets the tributary width for Check 15's per-anchor shear demand. Top Anchor Spacing s<sub>at</sub> is the equivalent spacing for the top track (typically ~1.2m) and sets the tributary width for Check 19; both checks share the same Fastener Shear Capacity V<sub>rd</sub>. For a Cantilever support condition the top is free (no reaction), so Check 19 demand is zero by definition.</p>
+            <p class="hint">Trusses span the room's shorter side and repeat at S<sub>truss</sub> centres along the longer side, with a minimum of 2 trusses regardless of spacing. For a square room (L<sub>r</sub> = W<sub>r</sub>) the automatic rule is ambiguous &mdash; set Truss Span Direction explicitly. Truss spans of 12.0m or more require top suspended support (Check 18); below 12.0m no top suspended support is required. Base Anchor Spacing s<sub>a</sub> is the centre-to-centre spacing of anchors along the base track on a straight run &mdash; typically 4&ndash;5m, independent of Post Spacing S<sub>post</sub> &mdash; and sets the tributary width for Check 15's per-anchor shear demand. Top Anchor Spacing s<sub>at</sub> is the equivalent spacing for the top track (typically ~1.2m) and sets the tributary width for Check 19; both checks share the same Fastener Shear Capacity V<sub>rd</sub>. For a Cantilever support condition the top is free (no reaction), so Check 19 demand is zero by definition. Post Cross-Section Area A<sub>x</sub> is the actual metal area of the extruded aluminum box profile (from the mill certificate/section table) &mdash; it cannot be derived from I<sub>x</sub> or Z<sub>x</sub>, which describe bending stiffness and capacity, not area &mdash; and is used for the axial stress term in Check 14's interaction ratio.</p>
         </div>
 
         <!-- SECTION 7: LOADS & SERVICE ALLOCATIONS -->
@@ -835,7 +839,7 @@
                     <tr><td>11</td><td>Mullion Post Axial Load</td><td class="formula-code">P<sub>ax</sub> = q<sub>tot</sub> · S<sub>post</sub> · (S<sub>truss</sub> / 2) + P<sub>eq</sub></td><td>&lt;= 450.0 kg (Cap Limit)</td></tr>
                     <tr><td>12</td><td>Post Euler Buckling Capacity</td><td class="formula-code">P<sub>crit</sub> = (π² · E · I<sub>x</sub>) / (1.5 · L²)</td><td>&lt;= P<sub>crit</sub> / 1.5 (Euler Pcr)</td></tr>
                     <tr><td>13</td><td>Post Bending Moment</td><td class="formula-code">M<sub>post</sub> = (q<sub>air</sub> · S<sub>post</sub> · L²) / 8</td><td>&lt;= M<sub>rd</sub> (Post Yield)</td></tr>
-                    <tr><td>14</td><td>Stress Interaction Ratio</td><td class="formula-code">IR = (σ<sub>axial</sub> / f<sub>allow</sub>) + (σ<sub>bending</sub> / f<sub>allow</sub>)</td><td>&lt;= 100.0 % (Interaction)</td></tr>
+                    <tr><td>14</td><td>Stress Interaction Ratio</td><td class="formula-code">IR = (P<sub>ax</sub>/A<sub>x</sub> / f<sub>allow</sub>) + (M<sub>post</sub>/Z<sub>x</sub> / f<sub>allow</sub>)</td><td>&lt;= 100.0 % (Interaction)</td></tr>
                     <tr><td>15</td><td>Fastener Base Shear</td><td class="formula-code">V<sub>act</sub> = q<sub>air</sub> · s<sub>a</sub> · L · R</td><td>&lt;= V<sub>rd</sub> per anchor</td></tr>
                     <tr><td>16</td><td>Lintel Opening Moment</td><td class="formula-code">M<sub>lintel</sub> = (q<sub>tot</sub> · g · L<sub>door</sub>³) / 8</td><td>&lt;= 1.200 kNm (Header)</td></tr>
                     <tr><td>17</td><td>Services Allocation Limit</td><td class="formula-code">I<sub>2</sub> (Declared Input)</td><td>&lt;= 25.0 kg/m² Allocation</td></tr>
@@ -861,7 +865,7 @@
         coreShearModulus: "2.5", coreShearStrength: "0.08",
         tempIn: "20", tempOut: "35", coeffAlpha: "0.000012", targetFreq: "8.0",
         postSpacing: "2.40", trussSpacing: "3.00", trussDirection: "auto", topSuspendedSupport: "no", postInertia: "125",
-        postModulus: "22", fastenerShear: "2.2", anchorSpacing: "4.50", topAnchorSpacing: "1.20",
+        postModulus: "22", postArea: "8.5", fastenerShear: "2.2", anchorSpacing: "4.50", topAnchorSpacing: "1.20",
         diffPressure: "50", walkoverLoad: "100.0", otherServices: "10.0",
         mepLoad: "8.5", equipmentPoint: "25.0"
     };
@@ -961,6 +965,7 @@
             { id: 'topSuspendedSupport', label: 'Top Suspended Support Provided?' },
             { id: 'postInertia', label: 'Post Moment of Inertia Ix', unit: 'cm⁴' },
             { id: 'postModulus', label: 'Post Section Modulus Zx', unit: 'cm³' },
+            { id: 'postArea', label: 'Post Cross-Section Area Ax', unit: 'cm²' },
             { id: 'fastenerShear', label: 'Fastener Shear Capacity Vrd', unit: 'kN' },
             { id: 'anchorSpacing', label: 'Base Anchor Spacing sa', unit: 'm' },
             { id: 'topAnchorSpacing', label: 'Top Anchor Spacing sat', unit: 'm' }
@@ -1198,6 +1203,7 @@
         const S_truss = parseFloat(document.getElementById('trussSpacing').value); // m
         const I_x = parseFloat(document.getElementById('postInertia').value); // cm4
         const Z_x = parseFloat(document.getElementById('postModulus').value); // cm3
+        const A_x = parseFloat(document.getElementById('postArea').value); // cm2
         const V_rd = parseFloat(document.getElementById('fastenerShear').value); // kN
         const anchorSpacing = parseFloat(document.getElementById('anchorSpacing').value); // m
         const topAnchorSpacing = parseFloat(document.getElementById('topAnchorSpacing').value); // m
@@ -1342,8 +1348,8 @@
         setParamRow('p13', M_post.toFixed(4) + " kNm", "<= " + M_post_rd.toFixed(3) + " kNm Yield", p13_pass);
         if (!p13_pass) { recommendations.push("Mullion bending moment under pressure exceeds capacity. Upgrade aluminum post section modulus (Z_x)."); allChecksAcceptable = false; }
 
-        const post_axial_stress = (P_ax * 9.81) / (Z_x * 10); 
-        const post_bending_stress = (M_post * 1000 * 1000) / (Z_x * 1000); 
+        const post_axial_stress = (P_ax * 9.81) / (A_x * 100); // A_x cm2 -> mm2
+        const post_bending_stress = (M_post * 1000 * 1000) / (Z_x * 1000);
         const interaction_pct = ((post_axial_stress / 160) + (post_bending_stress / 160)) * 100;
         const p14_pass = interaction_pct <= 100.0;
         setParamRow('p14', interaction_pct.toFixed(1) + " %", "<= 100.0 % Interaction", p14_pass);
